@@ -171,6 +171,10 @@ BASE=https://sweepstakes-viewer.vercel.app python3 tools/verify_seed.py
 `data/seed.json` は2026-11-19時点のシート内容（72件・17項目、`failed` は全て空欄）そのもの。
 `MODE=merge` を付けると、seed に無いNoは残したまま投入する。
 
+※ seed.json は「移行時点の控え」なので、移行後にDB側で担当（owner）などを変えた分は差分として出ます。
+（2026-11-19深夜の時点では、DBの70件が「本人」から「未振り分け」に変わっているため、
+`verify_seed.py` は owner の差異を70件と報告します。データの欠けではない）
+
 ## ローカル確認
 
 ```bash
