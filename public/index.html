@@ -38,6 +38,16 @@
   .go{ display:block; text-align:center; margin-top:10px; padding:13px; border-radius:12px;
        background:var(--accent); color:#fff; font-size:16px; font-weight:700; text-decoration:none; }
   .go:active{ opacity:.8; }
+  .assign{ display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .assign .lab{ font-size:12px; color:var(--muted); font-weight:600; }
+  .assign button{ border:1px solid var(--line); background:var(--card); color:var(--ink);
+        border-radius:999px; padding:8px 14px; font-size:14px; min-height:38px; }
+  .assign button.cur{ background:var(--ok); border-color:var(--ok); color:#fff; font-weight:700; }
+  .assign button:active{ opacity:.75; }
+  .assign button:disabled{ opacity:.5; }
+  .toast{ position:fixed; left:12px; right:12px; bottom:14px; z-index:20; display:none;
+        background:#22201c; color:#fff; font-size:14px; line-height:1.5; border-radius:12px;
+        padding:12px 14px; box-shadow:0 4px 16px rgba(0,0,0,.25); }
   .empty{ text-align:center; color:var(--muted); padding:32px 0; font-size:14px; }
   footer{ font-size:12px; color:var(--muted); text-align:center; padding:0 12px 24px; }
 </style>
@@ -50,6 +60,7 @@
     <button class="tab on" data-tab="soon">締切が近い順</button>
     <button class="tab" data-tab="today">今日締切</button>
     <button class="tab" data-tab="user">わきさか用</button>
+    <button class="tab" data-tab="unassigned">未振り分け</button>
     <button class="tab" data-tab="done">応募済み</button>
     <button class="tab" data-tab="all">全件</button>
   </div>
@@ -60,8 +71,10 @@
   <div id="list"></div>
 </main>
 <footer>データ元：Googleスプレッドシート「懸賞_共通応募リスト」／応募は公式URL先で本人が行います</footer>
+<div class="toast" id="toast"></div>
 
 <script src="data.js"></script>
+<script src="config.js"></script>
 <script>
 "use strict";
 // ---- 締切パース：「2026/11/30 23:59」「2026/12/06」「2026/11/29（…）」等に対応 ----
@@ -85,8 +98,54 @@ function safeUrl(u){
 }
 
 let ITEMS = (window.SWEEP_SNAPSHOT && window.SWEEP_SNAPSHOT.items) || [];
+ITEMS.forEach((it, i) => { it._row = i + 2; }); // スナップショットはシートの行順どおり生成されている
 let SOURCE_LABEL = "スナップショット " + ((window.SWEEP_SNAPSHOT||{}).generated_at || "");
 let tab = "soon";
+
+// ---- 未振り分け判定：担当が空欄／未振り分け／未定／保留 のもの ----
+function isUnassigned(it){
+  const o = String(it.owner || "").trim();
+  return o === "" || o === "未振り分け" || o === "未定" || o === "保留" || o === "-" || o === "—";
+}
+const OWNER_CHOICES = ["本人", "むぎ", "きなこ"];
+
+let toastTimer = null;
+function toast(msg){
+  const el = document.getElementById("toast");
+  el.textContent = msg; el.style.display = "block";
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ el.style.display = "none"; }, 4200);
+}
+
+// ---- 担当をシートへ書き込む（中継 endpoint があれば直接更新、なければシートのセルを開く） ----
+async function setOwner(no, owner, btn){
+  const cfg = window.SWEEP_WRITE || {};
+  const it = ITEMS.find(x => String(x.no) === String(no));
+  if(cfg.endpoint){
+    btn.disabled = true;
+    try{
+      const res = await fetch(cfg.endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ passcode: cfg.passcode || "", no: String(no), owner })
+      });
+      const out = await res.json();
+      if(!out.ok) throw new Error(out.error || "update_failed");
+      if(it) it.owner = owner;
+      toast("担当を「" + owner + "」にしました（シート更新済み）");
+      render();
+    }catch(e){
+      btn.disabled = false;
+      toast("シート更新に失敗しました。通信を確認してもう一度押してください");
+    }
+  }else{
+    // フォールバック：中継が未設定の間は、シートの担当セル（M列・その行）を直接開く
+    const id = (window.SWEEP_SNAPSHOT||{}).spreadsheet_id;
+    const row = it && it._row ? it._row : (parseInt(no, 10) + 1);
+    window.open("https://docs.google.com/spreadsheets/d/" + id + "/edit#gid=282030616&range=M" + row, "_blank");
+    toast("書き込み中継が未設定のため、シートの担当セルを開きました。そこで「" + owner + "」と入力すると反映されます");
+  }
+}
 
 // ---- 可能ならライブ取得（シートがリンク共有で読める場合のみ成功。失敗時はスナップショット） ----
 async function tryLive(){
@@ -98,9 +157,10 @@ async function tryLive(){
     const txt = await res.text();
     const json = JSON.parse(txt.substring(txt.indexOf("{"), txt.lastIndexOf("}")+1));
     const cols = ["no","name","sponsor","prize","deadline","decision","category","agent_can","user_must","status","url","evidence","owner"];
-    const rows = (json.table.rows||[]).map(r => {
+    const rows = (json.table.rows||[]).map((r, idx) => {
       const o = {};
       cols.forEach((k,i)=>{ const c = r.c && r.c[i]; o[k] = c ? (c.f ?? (c.v==null?"":String(c.v))) : ""; });
+      o._row = idx + 2; // シート上の行番号（1行目=見出し）
       return o;
     }).filter(o => o.name);
     if(rows.length >= 10){ ITEMS = rows; SOURCE_LABEL = "ライブ取得（シート連携）"; render(); }
@@ -113,6 +173,7 @@ function filtered(){
   let list = ITEMS.map(it => ({...it, _dl: parseDeadline(it.deadline), _left: null}))
                     .map(it => (it._left = daysLeft(it._dl, now), it));
   if(tab === "today") list = list.filter(it => it._left === 0);
+  else if(tab === "unassigned") list = list.filter(it => isUnassigned(it));
   else if(tab === "user") list = list.filter(it => String(it.owner||"").includes("本人") || /^②|^③|^④/.test(String(it.category||"")));
   else if(tab === "done") list = list.filter(it => String(it.status||"").startsWith("応募済"));
   else if(tab === "soon") list = list.filter(it => it._left === null || it._left >= 0);
@@ -155,6 +216,10 @@ function render(){
           ? '<div class="detail"><b>本人がやること：</b>'+esc(it.user_must)+'</div>' : '')
       + (url ? '<a class="go" href="'+esc(url)+'" target="_blank" rel="noopener">公式ページを開く</a>'
              : '<div class="detail"><b>応募先：</b>'+esc(it.url || "URL未設定")+'（ボタンなし）</div>')
+      + '<div class="assign"><span class="lab">担当を決める：</span>'
+      + OWNER_CHOICES.map(o => '<button type="button" data-no="'+esc(it.no)+'" data-owner="'+o+'"'
+          + (String(it.owner||"").trim() === o ? ' class="cur"' : '') + '>' + o + '</button>').join("")
+      + '</div>'
       + '</article>';
   }).join("");
 }
@@ -164,6 +229,10 @@ document.getElementById("tabs").addEventListener("click", e => {
   tab = b.dataset.tab;
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t === b));
   render();
+});
+document.getElementById("list").addEventListener("click", e => {
+  const b = e.target.closest(".assign button"); if(!b) return;
+  setOwner(b.dataset.no, b.dataset.owner, b);
 });
 document.getElementById("q").addEventListener("input", render);
 render();
