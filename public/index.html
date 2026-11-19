@@ -48,6 +48,10 @@
   .assign button.cur{ background:var(--ok); border-color:var(--ok); color:#fff; font-weight:700; }
   .assign button.skip{ color:var(--today); border-color:var(--today); }
   .assign button.skip.cur{ background:var(--today); border-color:var(--today); color:#fff; }
+  .assign button.capv1{ background:#1565c0; border-color:#1565c0; color:#fff; }
+  .assign button.capv2{ background:#fdd835; border-color:#e0bd1d; color:#22201c; }
+  .assign button.capv3{ background:#c62828; border-color:#c62828; color:#fff; }
+  .assign button.capv1.cur, .assign button.capv2.cur, .assign button.capv3.cur{ outline:3px solid #22201c; outline-offset:1px; }
   .assign button:active{ opacity:.75; }
   .assign button:disabled{ opacity:.5; }
   .cap{ display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-top:8px; }
@@ -77,7 +81,7 @@
     <button class="tab" data-tab="daily">毎日応募</button>
   </div>
   <input class="search" id="q" type="search" placeholder="キャンペーン名・主催で検索" autocomplete="off">
-  <div class="legend">可否ボタン（シートの「むぎ」「きなこ」欄の入力で色が変わります）：<span class="dot" style="background:#1565c0"></span>1 できる<span class="dot" style="background:#fdd835"></span>2 たぶんできる・未検証<span class="dot" style="background:#c62828"></span>3 絶対にできない</div>
+  <div class="legend">担当ボタンの色は、その人の可否（シートの「むぎ」「きなこ」欄の入力）です：<span class="dot" style="background:#1565c0"></span>1 できる<span class="dot" style="background:#fdd835"></span>2 たぶんできる・未検証<span class="dot" style="background:#c62828"></span>3 絶対にできない（色なし＝未入力）</div>
   <div class="legend">毎日応募：シートの「毎日応募」欄に○が付いたものが「毎日応募」タブに入ります（応募期間中はずっと表示されます）</div>
 </header>
 <main>
@@ -150,13 +154,13 @@ function tabOf(it){
   return "assigned";
 }
 const OWNER_CHOICES = ["本人", "むぎ", "きなこ"];
-// ---- 可否ボタン：シートの むぎ(N列)／きなこ(O列) 欄の入力 1・2・3 で色が変わる ----
-// 1=できる（青）／2=たぶんできる・未検証（黄色）／3=絶対にできない（赤）／未入力=グレー
+// ---- 担当ボタンの色＝その人の可否：シートの むぎ(N列)／きなこ(O列) 欄の入力 1・2・3 で色が変わる ----
+// 1=できる（青）／2=たぶんできる・未検証（黄色）／3=絶対にできない（赤）／未入力=色なし
 const CAP_LABEL = {"1":"1 できる","2":"2 たぶんできる","3":"3 絶対にできない"};
-function capBtn(who, val){
-  const v = String(val ?? "").trim();
-  const cls = CAP_LABEL[v] ? " v" + v : "";
-  return '<span class="capbtn' + cls + '">' + who + "：" + (CAP_LABEL[v] || "未入力") + '</span>';
+function capVal(it, who){
+  if(who === "むぎ") return String(it.mugi ?? "").trim();
+  if(who === "きなこ") return String(it.kinako ?? "").trim();
+  return "";
 }
 
 let toastTimer = null;
@@ -264,12 +268,13 @@ function render(){
       + (url ? '<a class="go" href="'+esc(url)+'" target="_blank" rel="noopener">公式ページを開く</a>'
              : '<div class="detail"><b>応募先：</b>'+esc(it.url || "URL未設定")+'（ボタンなし）</div>')
       + '<div class="assign"><span class="lab">担当を決める：</span>'
-      + OWNER_CHOICES.map(o => '<button type="button" data-no="'+esc(it.no)+'" data-owner="'+o+'"'
-          + (String(it.owner||"").trim() === o ? ' class="cur"' : '') + '>' + o + '</button>').join("")
+      + OWNER_CHOICES.map(o => {
+          const cv = capVal(it, o);
+          const cls = (CAP_LABEL[cv] ? 'capv' + cv + ' ' : '') + (String(it.owner||"").trim() === o ? 'cur' : '');
+          const label = o + (CAP_LABEL[cv] ? '（' + cv + '）' : '');
+          return '<button type="button" class="' + cls.trim() + '" data-no="'+esc(it.no)+'" data-owner="'+o+'">' + label + '</button>';
+        }).join("")
       + '<button type="button" class="skip'+(isSkip(it) ? ' cur' : '')+'" data-no="'+esc(it.no)+'" data-owner="やらない">やらない</button>'
-      + '</div>'
-      + '<div class="cap"><span class="lab">できる？：</span>'
-      + capBtn("むぎ", it.mugi) + capBtn("きなこ", it.kinako)
       + '</div>'
       + '</article>';
   }).join("");
