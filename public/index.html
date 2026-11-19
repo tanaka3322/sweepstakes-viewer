@@ -46,6 +46,12 @@
   .assign button{ border:1px solid var(--line); background:var(--card); color:var(--ink);
         border-radius:999px; padding:8px 14px; font-size:14px; min-height:38px; }
   .assign button.cur{ background:var(--ok); border-color:var(--ok); color:#fff; font-weight:700; }
+  .assign button.o-honnin{ border-color:#1565c0; color:#1565c0; }
+  .assign button.o-honnin.cur{ background:#1565c0; border-color:#1565c0; color:#fff; }
+  .assign button.o-mugi{ border-color:#e65100; color:#e65100; }
+  .assign button.o-mugi.cur{ background:#e65100; border-color:#e65100; color:#fff; }
+  .assign button.o-kinako{ border-color:#2e7d32; color:#2e7d32; }
+  .assign button.o-kinako.cur{ background:#2e7d32; border-color:#2e7d32; color:#fff; }
   .assign button.skip{ color:var(--today); border-color:var(--today); }
   .assign button.skip.cur{ background:var(--today); border-color:var(--today); color:#fff; }
   .assign button:active{ opacity:.75; }
@@ -125,14 +131,16 @@ function isSkip(it){
 // ---- 振り分け先（4分類・どれか1つに必ず入る） ----
 // 未振り分け：担当者が決まってない／毎日応募：担当が決まっていて毎日応募できるもの
 // 応募済み：担当が決まって応募も完了／振り分け済み：担当が決まっているが未応募
-// ※「やらない」も担当が決まった扱いで、専用タブは作らず通常の分類に入る
+// ※「やらない」は専用タブを作らず、どのタブにも出さない（画面から消える。シートには残る）
 function tabOf(it){
+  if(isSkip(it)) return "skip";
   if(isUnassigned(it)) return "unassigned";
   if(isDaily(it)) return "daily";
   if(isDone(it)) return "done";
   return "assigned";
 }
 const OWNER_CHOICES = ["本人", "むぎ", "きなこ"];
+const OWNER_CLASS = { "本人": "o-honnin", "むぎ": "o-mugi", "きなこ": "o-kinako" };
 
 let toastTimer = null;
 function toast(msg){
@@ -238,8 +246,9 @@ function render(){
       + (url ? '<a class="go" href="'+esc(url)+'" target="_blank" rel="noopener">公式ページを開く</a>'
              : '<div class="detail"><b>応募先：</b>'+esc(it.url || "URL未設定")+'（ボタンなし）</div>')
       + '<div class="assign"><span class="lab">担当を決める：</span>'
-      + OWNER_CHOICES.map(o => '<button type="button" data-no="'+esc(it.no)+'" data-owner="'+o+'"'
-          + (String(it.owner||"").trim() === o ? ' class="cur"' : '') + '>' + o + '</button>').join("")
+      + OWNER_CHOICES.map(o => '<button type="button" class="'+OWNER_CLASS[o]
+          + (String(it.owner||"").trim() === o ? ' cur' : '') + '" data-no="'+esc(it.no)+'" data-owner="'+o+'"'
+          + '>' + o + '</button>').join("")
       + '<button type="button" class="skip'+(isSkip(it) ? ' cur' : '')+'" data-no="'+esc(it.no)+'" data-owner="やらない">やらない</button>'
       + '</div>'
       + '</article>';
