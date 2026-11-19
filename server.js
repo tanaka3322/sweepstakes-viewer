@@ -50,4 +50,4 @@ const server = http.createServer((req, res) => {
   fs.createReadStream(file).pipe(res);
 });
 
-server.listen(3211, () => console.log("http://localhost:3211"));
+server.listen(Number(process.env.PORT) || 3211, () => console.log("http://localhost:" + (Number(process.env.PORT) || 3211)));

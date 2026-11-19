@@ -27,6 +27,15 @@
   .tab.on{ background:var(--accent); border-color:var(--accent); color:#fff; font-weight:700; }
   .tab.on .cnt{ background:rgba(255,255,255,.28); color:#fff; }
   .tab.zero .cnt{ background:#f2eee5; color:#a49d8d; }
+  .filter{ display:flex; align-items:center; gap:6px; overflow-x:auto; padding:6px 0 2px; }
+  .filter[hidden]{ display:none; }
+  .filter .lab{ flex:0 0 auto; font-size:12px; color:var(--muted); font-weight:600; }
+  .filter button{ flex:0 0 auto; border:1px solid var(--line); background:var(--card); color:var(--ink);
+        border-radius:999px; padding:7px 13px; font-size:13px; min-height:36px; }
+  .filter button.on{ background:var(--ink); border-color:var(--ink); color:#fff; font-weight:700; }
+  .filter button .cnt{ display:inline-block; margin-left:4px; font-size:11px; font-weight:700;
+        color:var(--muted); background:#efe9dc; border-radius:999px; padding:0 6px; }
+  .filter button.on .cnt{ background:rgba(255,255,255,.28); color:#fff; }
   .search{ width:100%; font-size:16px; padding:10px 12px; border:1px solid var(--line);
            border-radius:10px; background:var(--card); margin-top:6px; }
   .legend{ font-size:11.5px; color:var(--muted); margin-top:6px; line-height:1.6; }
@@ -47,6 +56,7 @@
   .chip.dl-today{ background:var(--today); color:#fff; font-weight:700; }
   .chip.dl-soon{ background:var(--soon); color:#fff; font-weight:700; }
   .chip.done{ background:var(--ok); color:#fff; }
+  .chip.fail{ background:#8e1b1b; color:#fff; font-weight:700; }
   .chip.owner{ background:#e8e2d3; font-weight:700; }
   .detail{ font-size:13px; line-height:1.6; margin-top:8px; }
   .detail b{ color:var(--muted); font-weight:600; }
@@ -59,6 +69,9 @@
         border-radius:999px; padding:8px 14px; font-size:14px; min-height:38px; }
   .assign button.skip{ color:var(--today); border-color:var(--today); }
   .assign button.skip.cur{ background:var(--today); border-color:var(--today); color:#fff; }
+  .assign button.fail{ color:#8e1b1b; border-color:#8e1b1b; }
+  .assign button.fail.cur{ background:#8e1b1b; border-color:#8e1b1b; color:#fff; }
+  .assign button.unfail{ background:#8e1b1b; border-color:#8e1b1b; color:#fff; font-weight:700; }
   .assign button.capv1{ background:#1565c0; border-color:#1565c0; color:#fff; }
   .assign button.capv2{ background:#fdd835; border-color:#e0bd1d; color:#22201c; }
   .assign button.capv3{ background:#c62828; border-color:#c62828; color:#fff; }
@@ -92,11 +105,19 @@
     <button class="tab" data-tab="assigned" type="button">振り分け済み<span class="cnt">-</span></button>
     <button class="tab" data-tab="done" type="button">応募済み<span class="cnt">-</span></button>
     <button class="tab" data-tab="daily" type="button">毎日応募<span class="cnt">-</span></button>
+    <button class="tab" data-tab="failed" type="button">× できなかった<span class="cnt">-</span></button>
     <button class="tab" data-tab="skip" type="button">やらない<span class="cnt">-</span></button>
+  </div>
+  <div class="filter" id="filter" hidden>
+    <span class="lab">人別：</span>
+    <button type="button" data-filter="全員" class="on">全員<span class="cnt">-</span></button>
+    <button type="button" data-filter="本人">本人<span class="cnt">-</span></button>
+    <button type="button" data-filter="むぎ">むぎ<span class="cnt">-</span></button>
+    <button type="button" data-filter="きなこ">きなこ<span class="cnt">-</span></button>
   </div>
   <input class="search" id="q" type="search" placeholder="キャンペーン名・主催で検索" autocomplete="off">
   <div class="legend">担当ボタンの色はその人の可否です（むぎ・きなこ欄）：<span class="dot" style="background:#1565c0"></span>1 できる<span class="dot" style="background:#fdd835"></span>2 たぶんできる<span class="dot" style="background:#c62828"></span>3 できない（色なし＝未入力）／<b>いまの担当は太い黒枠</b></div>
-  <div class="legend">「やらない」は確認のうえ「やらない」タブへ移ります。そこでもう一度担当を押せば戻せます。</div>
+  <div class="legend">「やらない」は確認のうえ「やらない」タブへ移ります。そこでもう一度担当を押せば戻せます。／「× できなかった」は応募しようとしてできなかった案件です（担当はそのまま、「×を解除」で戻せます）。</div>
 </header>
 <main>
   <div class="count" id="count"></div>
@@ -106,6 +127,7 @@
 <div class="toast" id="toast"></div>
 
 <script src="config.js"></script>
+<script src="logic.js"></script>
 <script>
 "use strict";
 // ============ 設定 ============
@@ -122,17 +144,9 @@ function safeUrl(u){
   try{ const x = new URL(String(u)); return (x.protocol === "https:" || x.protocol === "http:") ? x.href : ""; }
   catch(e){ return ""; }
 }
-function parseDeadline(s){
-  if(!s) return null;
-  const m = String(s).match(/(\d{4})\/(\d{1,2})\/(\d{1,2})(?:\s+(\d{1,2}):(\d{2}))?/);
-  if(!m) return null;
-  return new Date(+m[1], +m[2]-1, +m[3], +(m[4]||23), +(m[5]||59), 59);
-}
-function startOfDay(d){ const x = new Date(d); x.setHours(0,0,0,0); return x; }
-function daysLeft(dl, now){
-  if(!dl) return null;
-  return Math.round((startOfDay(dl) - startOfDay(now)) / 86400000);
-}
+const LOGIC = window.SWEEP_LOGIC;
+function parseDeadline(s){ return LOGIC.parseDeadline(s); }
+function daysLeft(dl, now){ return LOGIC.daysLeft(dl, now); }
 function two(n){ return n < 10 ? "0" + n : "" + n; }
 function fmtTime(iso){
   if(!iso) return "";
@@ -144,38 +158,24 @@ function fmtTime(iso){
 // ============ 状態 ============
 let ITEMS = [];
 let TAB = "unassigned";
+let OWNER_FILTER = "全員";   // 振り分け済み・×タブの人別フィルター
 let LOADED = false;
 let LAST_UPDATED = null;
 let LOAD_ERROR = "";
 const BUSY = new Set();       // 書き込み中のNo
-const TAB_NAMES = { unassigned:"未振り分け", assigned:"振り分け済み", done:"応募済み", daily:"毎日応募", skip:"やらない" };
+const TAB_NAMES = LOGIC.TAB_NAMES;
 const OWNER_CHOICES = ["本人", "むぎ", "きなこ"];
 const CAP_LABEL = { "1":"できる", "2":"たぶんできる", "3":"できない" };
+const FILTER_TABS = ["assigned", "failed"];
 
-// ============ 振り分け判定 ============
-function isUnassigned(it){
-  const o = String(it.owner || "").trim();
-  return o === "" || o === "未振り分け" || o === "未定" || o === "保留" || o === "-" || o === "—";
-}
-function isDone(it){ return String(it.status || "").startsWith("応募済"); }
-function isDaily(it){
-  const v = String(it.daily || "").trim();
-  return v.includes("○") || v.includes("◯");
-}
-const HIDDEN_OWNERS = ["やらない", "応募しない"];
-function isSkip(it){ return HIDDEN_OWNERS.includes(String(it.owner || "").trim()); }
-function dailyActive(it){
-  if(!isDaily(it)) return false;
-  const left = daysLeft(parseDeadline(it.deadline), new Date());
-  return left === null || left >= 0;
-}
-function tabOf(it){
-  if(isSkip(it)) return "skip";
-  if(dailyActive(it)) return "daily";
-  if(isUnassigned(it)) return "unassigned";
-  if(isDone(it)) return "done";
-  return "assigned";
-}
+// ============ 振り分け判定（logic.js と共通） ============
+function isUnassigned(it){ return LOGIC.isUnassigned(it); }
+function isDone(it){ return LOGIC.isDone(it); }
+function isDaily(it){ return LOGIC.isDaily(it); }
+function isSkip(it){ return LOGIC.isSkip(it); }
+function isFailed(it){ return LOGIC.isFailed(it); }
+function dailyActive(it){ return LOGIC.dailyActive(it, new Date()); }
+function tabOf(it){ return LOGIC.tabOf(it, new Date()); }
 function capVal(it, who){
   if(who === "むぎ") return String(it.mugi ?? "").trim();
   if(who === "きなこ") return String(it.kinako ?? "").trim();
@@ -233,9 +233,22 @@ function setMeta(text){
 
 // ============ 表示 ============
 function counts(){
-  const c = { unassigned:0, assigned:0, done:0, daily:0, skip:0 };
+  const c = { unassigned:0, assigned:0, done:0, daily:0, failed:0, skip:0 };
   for(const it of ITEMS) c[tabOf(it)] += 1;
   return c;
+}
+
+function renderFilter(){
+  const wrap = document.getElementById("filter");
+  const show = FILTER_TABS.includes(TAB);
+  wrap.hidden = !show;
+  if(!show) return;
+  wrap.querySelectorAll("button[data-filter]").forEach(b => {
+    const who = b.dataset.filter;
+    b.classList.toggle("on", who === OWNER_FILTER);
+    const badge = b.querySelector(".cnt");
+    if(badge) badge.textContent = String(LOGIC.filterByOwner(ITEMS.filter(it => tabOf(it) === TAB), who).length);
+  });
 }
 
 function renderTabs(c){
@@ -251,23 +264,11 @@ function renderTabs(c){
 function filtered(){
   const now = new Date();
   const q = document.getElementById("q").value.trim();
-  let list = ITEMS.map(it => {
-    const dl = parseDeadline(it.deadline);
-    return Object.assign({}, it, { _dl: dl, _left: daysLeft(dl, now) });
-  });
+  let list = LOGIC.decorate(ITEMS, now);
   list = list.filter(it => tabOf(it) === TAB);
+  if(FILTER_TABS.includes(TAB)) list = LOGIC.filterByOwner(list, OWNER_FILTER);
   if(q) list = list.filter(it => (String(it.name || "") + " " + String(it.sponsor || "")).includes(q));
-  list.sort((a, b) => {
-    // 期限切れは各タブの末尾へ。残りは締切が近い順。
-    const ae = a._left !== null && a._left < 0;
-    const be = b._left !== null && b._left < 0;
-    if(ae !== be) return ae ? 1 : -1;
-    if(a._dl && b._dl) return a._dl - b._dl;
-    if(a._dl) return -1;
-    if(b._dl) return 1;
-    return 0;
-  });
-  return list;
+  return LOGIC.sortForList(list);
 }
 
 function emptyState(c){
@@ -280,9 +281,11 @@ function emptyState(c){
   else if(TAB === "assigned") msg = "振り分け済みは0件です。担当を決めた案件がここに出ます。";
   else if(TAB === "done") msg = "応募済みは0件です。";
   else if(TAB === "daily") msg = "毎日応募は0件です（毎日応募欄に○が付いた案件がここに出ます）。";
+  else if(TAB === "failed") msg = "×（できなかった）案件はありません。担当ボタン行の「× できなかった」でここに入ります。";
   else if(TAB === "skip") msg = "やらない案件はまだありません。";
   const q = document.getElementById("q").value.trim();
   if(q) msg = "「" + q + "」に一致する案件はこのタブにありません。";
+  else if(FILTER_TABS.includes(TAB) && OWNER_FILTER !== "全員") msg = "「" + OWNER_FILTER + "」の案件はこのタブにありません（人別フィルター「全員」で全部見られます）。";
   return '<div class="empty">' + esc(msg) + (links ? '<div class="links">' + links + "</div>" : "") + "</div>";
 }
 
@@ -306,6 +309,11 @@ function cardHtml(it){
     return '<button type="button" class="' + cls + '" data-no="' + esc(it.no) + '" data-owner="' + o + '"' + (busy ? " disabled" : "") + '>' + label + "</button>";
   }).join("");
   const skipBtn = '<button type="button" class="skip' + (isSkip(it) ? " cur" : "") + '" data-no="' + esc(it.no) + '" data-owner="やらない"' + (busy ? " disabled" : "") + '>やらない</button>';
+  // 「× できなかった」／×タブ内では「×を解除」（担当はそのまま）
+  const failBtn = isFailed(it)
+    ? '<button type="button" class="unfail" data-no="' + esc(it.no) + '" data-failed=""' + (busy ? " disabled" : "") + '>×を解除</button>'
+    : '<button type="button" class="fail" data-no="' + esc(it.no) + '" data-failed="×"' + (busy ? " disabled" : "") + '>× できなかった</button>';
+  const assignLabel = skipTab ? "担当に戻す：" : (TAB === "failed" ? "×を解除・担当を変える：" : "担当を決める：");
   return '<article class="card' + (left === 0 ? " today" : "") + (expired ? " expired" : "") + (busy ? " busy" : "") + '">'
     + '<div class="cardtop"><span class="no">No.' + esc(it.no || "-") + "</span></div>"
     + '<div class="name">' + esc(it.name) + "</div>"
@@ -314,20 +322,22 @@ function cardHtml(it){
     + '<span class="chip">締切 ' + esc(it.deadline) + "</span>"
     + (done ? '<span class="chip done">' + esc(it.status) + "</span>" : '<span class="chip">' + esc(it.status) + "</span>")
     + (isDaily(it) ? '<span class="chip dl-soon">毎日応募 ○</span>' : "")
+    + (isFailed(it) ? '<span class="chip fail">× できなかった</span>' : "")
     + '<span class="chip owner">担当：' + esc(ownerText) + "</span>"
     + '<span class="chip">' + esc(it.category) + "</span></div>"
     + (it.user_must && it.user_must !== "なし" && !String(it.user_must).startsWith("なし（")
         ? '<div class="detail"><b>本人がやること：</b>' + esc(it.user_must) + "</div>" : "")
     + (url ? '<a class="go" href="' + esc(url) + '" target="_blank" rel="noopener">公式ページを開く</a>'
            : '<div class="detail"><b>応募先：</b>' + esc(it.url || "URL未設定") + "（ボタンなし）</div>")
-    + '<div class="assign"><span class="lab">' + (skipTab ? "担当に戻す：" : "担当を決める：") + "</span>"
-    + buttons + skipBtn
+    + '<div class="assign"><span class="lab">' + assignLabel + "</span>"
+    + buttons + skipBtn + failBtn
     + "</div></article>";
 }
 
 function render(){
   const c = counts();
   renderTabs(c);
+  renderFilter();
   const now = new Date();
   if(LOAD_ERROR){
     setMeta("読み込み失敗：" + LOAD_ERROR);
@@ -337,7 +347,8 @@ function render(){
     setMeta("全" + ITEMS.length + "件 ／ データベース ／ 更新 " + (fmtTime(LAST_UPDATED) || "—") + " ／ 表示 " + now.toLocaleDateString("ja-JP"));
   }
   const list = filtered();
-  document.getElementById("count").textContent = TAB_NAMES[TAB] + " " + list.length + "件表示";
+  const filterNote = FILTER_TABS.includes(TAB) && OWNER_FILTER !== "全員" ? "（" + OWNER_FILTER + "）" : "";
+  document.getElementById("count").textContent = TAB_NAMES[TAB] + filterNote + " " + list.length + "件表示";
   const el = document.getElementById("list");
   if(!LOADED){
     el.innerHTML = '<div class="empty">' + (LOAD_ERROR ? "読み込めませんでした：" + esc(LOAD_ERROR) : "読み込み中…")
@@ -386,11 +397,46 @@ async function setOwner(no, owner, fromSkipTab){
     it.owner = before.owner;
     BUSY.delete(key);
     render();
-    const why = e.code === "timeout" ? "10秒以内に応答がありませんでした"
-      : e.code === "bad_passcode" ? "合言葉が違います（config.js）"
-      : e.code === "no_not_found" ? "データベースにそのNoが見つかりませんでした"
-      : (e.message || "通信に失敗しました");
+    const why = whyText(e);
     toast("更新できませんでした：" + why, true);
+  }
+}
+
+function whyText(e){
+  return e.code === "timeout" ? "10秒以内に応答がありませんでした"
+    : e.code === "bad_passcode" ? "合言葉が違います（config.js）"
+    : e.code === "no_not_found" ? "データベースにそのNoが見つかりませんでした"
+    : e.code === "bad_value" ? "値が不正です（×は×か空欄だけ）"
+    : (e.message || "通信に失敗しました");
+}
+
+// ×（できなかった）の設定・解除。担当（owner）は変えない。
+async function setFailed(no, next){
+  const key = String(no);
+  const it = ITEMS.find(x => String(x.no) === key);
+  if(!it || BUSY.has(key)) return;
+  if(next === "×" && !isFailed(it)){
+    const ok = window.confirm("No." + key + "「" + (it.name || "") + "」を「×（できなかった）」にします。\n「×」タブに移ります（あとから解除できます。担当はそのまま）。");
+    if(!ok) return;
+  }
+  const before = { failed: it.failed };
+  BUSY.add(key);
+  it.failed = next;           // 先に画面へ反映
+  render();
+  try{
+    const out = await req("PATCH", "/" + encodeURIComponent(key), { failed: next, by: "サイト" }, WRITE_TIMEOUT_MS);
+    if(out.item){
+      Object.assign(it, out.item);
+      LAST_UPDATED = new Date().toISOString();
+    }
+    BUSY.delete(key);
+    render();
+    toast(next === "×" ? "No." + key + " を「×（できなかった）」にしました" : "No." + key + " の「×」を解除しました");
+  }catch(e){
+    it.failed = before.failed;
+    BUSY.delete(key);
+    render();
+    toast("更新できませんでした：" + whyText(e), true);
   }
 }
 
@@ -399,7 +445,15 @@ document.getElementById("tabs").addEventListener("click", e => {
   const b = e.target.closest(".tab");
   if(!b) return;
   TAB = b.dataset.tab;
+  OWNER_FILTER = "全員";
   document.querySelectorAll("#tabs .tab").forEach(t => t.classList.toggle("on", t === b));
+  render();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+document.getElementById("filter").addEventListener("click", e => {
+  const b = e.target.closest("button[data-filter]");
+  if(!b) return;
+  OWNER_FILTER = b.dataset.filter;
   render();
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
@@ -407,6 +461,7 @@ document.getElementById("list").addEventListener("click", e => {
   const goto = e.target.closest("button[data-goto]");
   if(goto){
     TAB = goto.dataset.goto;
+    OWNER_FILTER = "全員";
     render();
     window.scrollTo({ top: 0, behavior: "smooth" });
     return;
@@ -414,6 +469,8 @@ document.getElementById("list").addEventListener("click", e => {
   if(e.target.closest("button[data-reload]")){ load(false); return; }
   const b = e.target.closest(".assign button");
   if(!b || b.disabled) return;
+  // ×（できなかった）ボタン／×を解除ボタン
+  if(b.dataset.failed !== undefined){ setFailed(b.dataset.no, b.dataset.failed); return; }
   setOwner(b.dataset.no, b.dataset.owner, TAB === "skip");
 });
 document.getElementById("toast").addEventListener("click", e => {

@@ -40,7 +40,7 @@ Upstash Redis
 - 応答はすべて `Cache-Control: no-store`。
 - 書き込み時の `by` に「きなこ」「むぎ」などを入れると、最終更新者として残る。
 
-### 項目（16項目＋updated_at）
+### 項目（17項目＋updated_at）
 
 | キー | 意味 | 値 |
 |---|---|---|
@@ -60,6 +60,7 @@ Upstash Redis
 | `mugi` | むぎ可否 | `""` / `"1"`（できる）/ `"2"`（たぶんできる）/ `"3"`（できない） |
 | `kinako` | きなこ可否 | 同上 |
 | `daily` | 毎日応募 | `"○"` / `""`（`true`/`false` も受付、返却は `"○"`/`""`） |
+| `failed` | できなかった（×） | `"×"`（応募しようとしてできなかった）/ `""`（通常）。`true`/`false` も受付、返却は `"×"`/`""`。**owner は変えない**（誰ができなかったかは owner で判断）。理由は `evidence` に追記する運用 |
 | `updated_at` | 更新時刻 | ISO8601（サーバーが付ける） |
 
 個人情報の項目は作らない。
@@ -68,7 +69,7 @@ Upstash Redis
 
 | メソッド | URL | 用途 |
 |---|---|---|
-| GET | `/api/items` | 全件取得。`?q=` 名前・主催の部分一致、`?include_hidden=1` で「やらない」「応募しない」も含む（既定は除外） |
+| GET | `/api/items` | 全件取得。`?q=` 名前・主催の部分一致、`?include_hidden=1` で「やらない」「応募しない」も含む（既定は除外）、`?failed=1` で `failed==="×"` のものだけ。**×は通常の取得でも返る**（非表示にしない） |
 | GET | `/api/items/:no` | 1件取得 → `{ok:true,item}` |
 | POST | `/api/items` | 新規追加。`no` 省略時は自動採番。`name+url+deadline` が同じなら `{ok:false,error:"duplicate",no:"既存No"}`（HTTP 409）。成功は 201 で `{ok:true,item}` |
 | PATCH | `/api/items/:no` | 部分更新。送った項目だけ変更し、更新後の1件全体を `{ok:true,item}` で返す |
@@ -82,6 +83,8 @@ Upstash Redis
 `bad_passcode`(401) / `bad_owner`(400) / `bad_value`(400) / `bad_no`(400) / `bad_name`(400) /
 `no_changes`(400) / `no_not_found`(404) / `duplicate`(409) / `duplicate_no`(409) /
 `db_timeout`(504) / `db_not_configured`(500) / `db_error`(502)
+
+`failed` の不正値（`○`・`△`・`2` など）も `bad_value`(400)。
 
 ### 例（curl）
 
@@ -114,22 +117,39 @@ curl -s -X POST 'https://sweepstakes-viewer.vercel.app/api/items/bulk' \
   -H 'Content-Type: application/json' -H 'x-chat-passcode: kinako3150' \
   -d '{"updates":[{"no":"2","owner":"きなこ"},{"no":"999","owner":"むぎ"}],"by":"きなこ"}'
 # → {"ok":true,"requested":2,"updated":1,"failed":[{"no":"999","error":"no_not_found"}],...}
+
+# 「×（できなかった）」にする／解除する
+curl -s -X PATCH 'https://sweepstakes-viewer.vercel.app/api/items/7' \
+  -H 'Content-Type: application/json' -H 'x-chat-passcode: kinako3150' \
+  -d '{"failed":"×","by":"きなこ"}'
+curl -s -X PATCH 'https://sweepstakes-viewer.vercel.app/api/items/7' \
+  -H 'Content-Type: application/json' -H 'x-chat-passcode: kinako3150' \
+  -d '{"failed":"","by":"きなこ"}'
+
+# ×の案件だけ取得
+curl -s -H 'x-chat-passcode: kinako3150' \
+  'https://sweepstakes-viewer.vercel.app/api/items?failed=1'
 ```
 
 ## 画面
 
-- タブは5つ：**未振り分け / 振り分け済み / 応募済み / 毎日応募 / やらない**。
+- タブは6つ：**未振り分け / 振り分け済み / 応募済み / 毎日応募 / × できなかった / やらない**。
   どのタブにも件数を表示し、0件のときは「未振り分けは0件です（全件どれかの担当に振り分け済み）」と
   件数のあるタブへのボタンを出す。
-- 振り分けの決まり：非表示（`owner` が「やらない」「応募しない」）→「やらない」タブ／
-  毎日応募（`daily=="○"` かつ締切当日まで）→「毎日応募」／
+- 振り分けの決まり（優先順位）：非表示（`owner` が「やらない」「応募しない」）→「やらない」タブ／
+  `failed==="×"` →「×」タブ／毎日応募（`daily=="○"` かつ締切当日まで）→「毎日応募」／
   担当なし（`owner`が空・未振り分け・未定・保留）→「未振り分け」／
   担当あり＋`status`が「応募済」で始まる→「応募済み」／それ以外→「振り分け済み」。
+  ×にした時点で、毎日応募の案件もいったん×タブへ移る。
 - カード：左上 `No.○`、名前、主催／賞品、締切（今日締切は赤、あと3日以内はオレンジ、期限切れは灰色）、
   応募状況、担当、分類、本人がやること、公式URLボタン。
-- 担当ボタン：`本人` / `むぎ` / `きなこ` ＋ `やらない`。
+- 担当ボタン：`本人` / `むぎ` / `きなこ` ＋ `やらない` ＋ `× できなかった`。
   色はその人の可否（`mugi`・`kinako` の 1=青 / 2=黄 / 3=赤、未入力=色なし）。
   **いまの担当は太い黒枠**で示す（色は可否の意味なので枠で区別）。
+- `× できなかった`：確認ダイアログのうえ `failed="×"` にして×タブへ移す（担当はそのまま）。
+  ×タブ内では「×を解除」で `failed=""` に戻せる。
+- 人別フィルター：**振り分け済み**タブと**×**タブに `全員／本人／むぎ／きなこ` のボタン。
+  押した人の案件だけを表示し、件数バッジも人別に切り替わる（並びは締切が近い順・期限切れ末尾のまま）。
 - 押した瞬間に画面へ反映し、書き込みが10秒でタイムアウトしたとき・失敗したときは
   **元の担当に戻して**「更新できませんでした：理由」と「最新を読み込み直す」ボタンを出す。
   書き込み中はそのカードの4ボタンを押せなくする（連打の二重書き込み防止）。
@@ -148,14 +168,19 @@ BASE=https://sweepstakes-viewer.vercel.app PASS=kinako3150 ./tools/import_seed.s
 BASE=https://sweepstakes-viewer.vercel.app python3 tools/verify_seed.py
 ```
 
-`data/seed.json` は2026-11-19時点のシート内容（72件・16列）そのもの。
+`data/seed.json` は2026-11-19時点のシート内容（72件・17項目、`failed` は全て空欄）そのもの。
 `MODE=merge` を付けると、seed に無いNoは残したまま投入する。
 
 ## ローカル確認
 
 ```bash
 KV_REST_API_URL=... KV_REST_API_TOKEN=... npm start   # → http://localhost:3211
+npm test                                                # 擬似RedisでAPIと画面ロジックを検証
 ```
+
+`tests/run.js` は擬似Redis（`tests/fake-redis.js`）を立てて本物の `server.js` / `api/` / `lib/` を
+そのまま動かすので、Upstash の実データを汚さずに failed の設定・解除・バリデーション・
+`?failed=1`・bulk・振り分け優先順位・人別フィルターを確認できる。
 
 ## 旧構成からの変更点（v0.5.2 → v1.0）
 

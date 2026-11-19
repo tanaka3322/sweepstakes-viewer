@@ -1,5 +1,5 @@
 'use strict';
-// GET  /api/items      … 全件取得（?q= 名前・主催の部分一致／?include_hidden=1 で「やらない」「応募しない」も含む）
+// GET  /api/items      … 全件取得（?q= 名前・主催の部分一致／?include_hidden=1 で「やらない」「応募しない」も含む／?failed=1 で「×」だけ）
 // POST /api/items      … 1件追加（No省略時は自動採番）／{items:[…],mode:"replace"|"merge"} でまとめて投入
 
 const store = require('../../lib/store');
@@ -53,6 +53,9 @@ module.exports = async (req, res) => {
         items = items.filter((it) => !store.HIDDEN_OWNERS.includes(String(it.owner || '').trim()));
       }
       items = items.filter((it) => matchesQuery(it, String(query.q || '').trim()));
+      // failed=1 … 応募しようとしてできなかった「×」だけを返す（×は非表示にしない）
+      const onlyFailed = String(query.failed || '') === '1';
+      if (onlyFailed) items = items.filter((it) => String(it.failed || '') === '×');
       const meta = await store.getMeta();
       return send(res, 200, {
         ok: true,

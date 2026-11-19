@@ -7,7 +7,7 @@
 
 - 件数（seed の件数 = DB の件数）
 - No の集合が一致
-- 16項目すべての値が一致
+- 17項目すべての値が一致
 を順に確かめ、食い違いがあれば最初の数件を表示して exit 1。
 """
 import json
@@ -17,7 +17,7 @@ import urllib.request
 
 FIELDS = ["no", "name", "sponsor", "prize", "deadline", "decision", "category",
           "agent_can", "user_must", "status", "url", "evidence",
-          "owner", "mugi", "kinako", "daily"]
+          "owner", "mugi", "kinako", "daily", "failed"]
 
 
 def norm(v):
