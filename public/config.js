@@ -1,8 +1,7 @@
-// サイトの設定
-// apiBase: データの取得・更新先（自サイトのServerless API）
-// passcode: 書き込み（と読み取り）に使う合言葉。Vercel の環境変数 SWEEP_PASSCODE と
-//           きなこ側の設定を同じ値にそろえること（未設定なら kinako3150）。
-window.SWEEP_CONFIG = {
-  apiBase: "/api/items",
+// サイトからシートへ「担当」を書き込むための中継（Apps Script Webアプリ）の設定。
+// endpoint が空の間、担当ボタンはシートの該当セルを直接開くフォールバック動作になる。
+// デプロイ手順は apps-script/README.md。URLが決まったら endpoint に入れること。
+window.SWEEP_WRITE = {
+  endpoint: "https://script.google.com/macros/s/AKfycbxshy9cv9hSNGyrIAE4U8t6VcoyBlofFYIbn1LG5OQRhD_BM5R53BdGCo3yzS-OiGUaFA/exec",
   passcode: "kinako3150"
 };
