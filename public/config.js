@@ -2,6 +2,6 @@
 // endpoint が空の間、担当ボタンはシートの該当セルを直接開くフォールバック動作になる。
 // デプロイ手順は apps-script/README.md。URLが決まったら endpoint に入れること。
 window.SWEEP_WRITE = {
-  endpoint: "https://script.google.com/macros/s/AKfycbxshy9cv9hSNGyrIAE4U8t6VcoyBlofFYIbn1LG5OQRhD_BM5R53BdGCo3yzS-OiGUaFA/exec",
+  endpoint: "https://script.google.com/macros/s/AKfycbxtTeJvxJRmv2Z48bbXc7gjY_i7qMgSm575SeCFxC17KlmEWktQh_IOZ98bQhYEySQQxg/exec",
   passcode: "kinako3150"
 };
