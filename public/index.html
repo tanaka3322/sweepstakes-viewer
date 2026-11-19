@@ -76,6 +76,7 @@
   </div>
   <input class="search" id="q" type="search" placeholder="キャンペーン名・主催で検索" autocomplete="off">
   <div class="legend">可否ボタン（シートの「むぎ」「きなこ」欄の入力で色が変わります）：<span class="dot" style="background:#1565c0"></span>1 できる<span class="dot" style="background:#fdd835"></span>2 たぶんできる・未検証<span class="dot" style="background:#c62828"></span>3 絶対にできない</div>
+  <div class="legend">毎日応募：シートの「毎日応募」欄に○が付いたものが「毎日応募」タブに入ります（応募期間中はずっと表示されます）</div>
 </header>
 <main>
   <div class="count" id="count"></div>
@@ -122,16 +123,22 @@ function isUnassigned(it){
 function isDone(it){
   return String(it.status || "").startsWith("応募済");
 }
-// ---- 毎日応募判定：「やるかどうか」に「毎日」を含むもの（毎日応募可） ----
+// ---- 毎日応募判定：シートの「毎日応募」欄（P列）に○が付いているもの ----
 function isDaily(it){
-  return String(it.decision || "").includes("毎日");
+  const v = String(it.daily || "").trim();
+  return v.includes("○") || v.includes("◯");
 }
 // ---- 振り分け先（4分類・どれか1つに必ず入る） ----
-// 未振り分け：担当者が決まってない／毎日応募：担当が決まっていて毎日応募できるもの
-// 応募済み：担当が決まって応募も完了／振り分け済み：担当が決まっているが未応募
+// 毎日応募：P列に○が付いているもの（担当の有無にかかわらず最優先。
+//   応募期間中＝締切当日まで毎日応募タブに表示し続け、締切を過ぎたら通常の分類に戻る）
+// 未振り分け：担当者が決まってない／応募済み：担当が決まって応募も完了
+// 振り分け済み：担当が決まっているが未応募
 function tabOf(it){
+  if(isDaily(it)){
+    const left = daysLeft(parseDeadline(it.deadline), new Date());
+    if(left === null || left >= 0) return "daily";
+  }
   if(isUnassigned(it)) return "unassigned";
-  if(isDaily(it)) return "daily";
   if(isDone(it)) return "done";
   return "assigned";
 }
@@ -192,7 +199,7 @@ async function tryLive(){
     const res = await fetch("https://docs.google.com/spreadsheets/d/"+id+"/gviz/tq?tqx=out:json&sheet="+encodeURIComponent("応募リスト"), {signal: ctl.signal});
     const txt = await res.text();
     const json = JSON.parse(txt.substring(txt.indexOf("{"), txt.lastIndexOf("}")+1));
-    const cols = ["no","name","sponsor","prize","deadline","decision","category","agent_can","user_must","status","url","evidence","owner","mugi","kinako"];
+    const cols = ["no","name","sponsor","prize","deadline","decision","category","agent_can","user_must","status","url","evidence","owner","mugi","kinako","daily"];
     const rows = (json.table.rows||[]).map((r, idx) => {
       const o = {};
       cols.forEach((k,i)=>{ const c = r.c && r.c[i]; o[k] = c ? (c.f ?? (c.v==null?"":String(c.v))) : ""; });
@@ -242,6 +249,7 @@ function render(){
       + '<div class="row">'+dlChip
       + '<span class="chip">締切 '+esc(it.deadline)+'</span>'
       + (done ? '<span class="chip done">'+esc(it.status)+'</span>' : '<span class="chip">'+esc(it.status)+'</span>')
+      + (isDaily(it) ? '<span class="chip dl-soon">毎日応募 ○</span>' : '')
       + '<span class="chip">担当：'+esc(it.owner)+'</span>'
       + '<span class="chip">'+esc(it.category)+'</span></div>'
       + (it.user_must && it.user_must !== "なし" && !String(it.user_must).startsWith("なし（")
