@@ -1,6 +1,6 @@
 // 自動生成ファイル（tools/build_data.py）。直接編集しないこと。
 window.SWEEP_SNAPSHOT = {
- "generated_at": "2026-11-19 18:26 JST",
+ "generated_at": "2026-11-19 19:51 JST",
  "source": "懸賞_共通応募リスト / 応募リスト",
  "spreadsheet_id": "161-pa0R3LgMKRhtNSwSsTaeIBai-0GonqvpOn8Rf00g",
  "items": [
@@ -17,7 +17,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "応募済（2026/11/11 むぎ代行）",
    "url": "https://www.nissin.com/",
    "evidence": "公式nissin.comで確認（2026/11/11）",
-   "owner": "むぎ"
+   "owner": "むぎ",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "2",
@@ -32,7 +34,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://www.yuskin.co.jp/",
    "evidence": "公式＋懸賞まとめ一致（2026/11/11）",
-   "owner": "むぎ"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "3",
@@ -47,7 +51,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://www.arouge.com/",
    "evidence": "公式arouge.comで確認（2026/11/11）",
-   "owner": "むぎ"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "4",
@@ -62,7 +68,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://www.toyotires.co.jp/",
    "evidence": "公式＋懸賞タイム（2026-11-19更新）",
-   "owner": "むぎ"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "5",
@@ -77,7 +85,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://www.unicharm.co.jp/",
    "evidence": "懸賞まとめ＋第2弾日程（公式未確認）",
-   "owner": "むぎ"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "6",
@@ -92,7 +102,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://www.cleandental-campaign2026.jp/",
    "evidence": "公式確認（2026/11/11）",
-   "owner": "むぎ"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "7",
@@ -107,7 +119,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "本人作句待ち",
    "url": "https://www.itoen-shinhaiku.jp/",
    "evidence": "公式規約で生成AI禁止を確認（2026/11/11）",
-   "owner": "むぎ（作句は本人）"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "8",
@@ -122,7 +136,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://x.com/suntory",
    "evidence": "Koubo・懸賞まとめ（公式要項ベース）",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "9",
@@ -137,7 +153,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://www.asahibeer-cp.jp/",
    "evidence": "公式確認（2026/11/11）",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "10",
@@ -152,7 +170,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://www.suntory.co.jp/",
    "evidence": "懸賞まとめ複数（公式未確認）",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "11",
@@ -167,7 +187,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://www.lawson.co.jp/",
    "evidence": "懸賞まとめ（公式未確認）",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "12",
@@ -182,7 +204,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://www.jleague.jp/",
    "evidence": "アタリバ（2026-11-19）／11/28・11/29で表記揺れ→公式確認してから応募",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "13",
@@ -197,7 +221,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://www.suntory.co.jp/",
    "evidence": "懸賞まとめ（公式未確認）",
-   "owner": "本人（購入）→むぎ"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "14",
@@ -212,7 +238,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未確認",
    "url": "https://www.nepia.co.jp/",
    "evidence": "懸賞まとめのみ（締切・公式ともに未確認）",
-   "owner": "保留"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "15",
@@ -227,7 +255,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://www.kirin.co.jp/",
    "evidence": "懸賞まとめのみ（公式要確認）",
-   "owner": "本人（購入）→むぎ"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "16",
@@ -242,7 +272,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未着手",
    "url": "https://rewards.bing.com/",
    "evidence": "公式規約確認済み（2026/11/11）／きなこNo.78：エントリーURL https://aka.ms/win-Promo（Bing検索で毎日インスタント抽選も）",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "17",
@@ -257,7 +289,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未着手",
    "url": "https://www.japanfritolay.co.jp/",
    "evidence": "公募情報経由（要公式確認）／きなこNo.79：X @Fritolay_JP_CP フォロー＋夢を投稿（公募サイト koubo.jp/contest/393364）",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "18",
@@ -272,7 +306,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未着手",
    "url": "https://www.sony.jp/mysony/",
    "evidence": "まとめサイト経由（要公式確認）／きなこNo.80：まとめサイトのみ（kunkoku.jp/mysony202611.html）・1ID1回。公式で要確認",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "19",
@@ -287,7 +323,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未着手",
    "url": "https://x.com/AzurPromilia_JP",
    "evidence": "公募情報経由（要公式確認）／きなこNo.81：@AzurPromilia_JP フォロー＋対象ポストをリポスト（「11月26日リリース決定記念」に改称）",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "20",
@@ -302,7 +340,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "応募済（2026/11/19 むぎ代行／希望メーカー：パナソニック黒）",
    "url": "https://form.qubo.jp/suihankicampaign2026",
    "evidence": "JEMA公式 https://www.jema-net.or.jp/living/suihanki/（2026-11-19確認）／きなこNo.82は未応募だが、むぎが2026-11-19に応募完了",
-   "owner": "むぎ"
+   "owner": "むぎ",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "21",
@@ -317,7 +357,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未着手",
    "url": "https://yomipo.yomiuri.co.jp/",
    "evidence": "まとめサイト経由（要公式確認）／きなこNo.83：koubo.jp/archives/963571（公式のよみぽランドで要確認）",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "22",
@@ -332,7 +374,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "本人操作待ち",
    "url": "https://www.bimi-ippin.jp/blog/2026/10/27/linegiftcampaign_matsusaka/",
    "evidence": "公式確認（2026-11-19）／LINE https://page.line.me/227wftls／きなこNo.84：公式 https://www.bimi-ippin.jp/blog/?p=2393",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "23",
@@ -347,7 +391,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "本人操作待ち",
    "url": "https://x.com/ih_ch_1101",
    "evidence": "JEMA公式 https://www.jema-net.or.jp/living/ih/（2026-11-19・Webフォームなし確認）／きなこNo.85（AI要約サイト経由・一次情報はJEMA公式）。No.82とは別",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "24",
@@ -362,7 +408,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "本人作句待ち",
    "url": "https://www.jcsa.gr.jp/",
    "evidence": "公式規約に「生成AI等による作品は応募不可」明記（2026/11/11）",
-   "owner": "むぎ（作句は本人）"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "25",
@@ -377,7 +425,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "本人作句待ち",
    "url": "https://www.interlink.or.jp/",
    "evidence": "公式規程「応募者本人が創作した未発表作品」（2026/11/11）",
-   "owner": "むぎ（作句は本人）"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "26",
@@ -392,7 +442,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "本人作句待ち",
    "url": "—",
    "evidence": "公式規程「応募者本人が創作した未発表作品」（2026/11/11）",
-   "owner": "むぎ（作句は本人）"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "27",
@@ -407,7 +459,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "本人執筆待ち",
    "url": "https://www.sankei.com/",
    "evidence": "産経新聞社 募集要項＋規約確認（2026/11/11）",
-   "owner": "むぎ（執筆は本人）"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "28",
@@ -422,7 +476,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未着手（会員登録から）",
    "url": "https://www.dreammail.jp/",
    "evidence": "公式＋懸賞サイト（2026/11/11）／きなこNo.63：応募にメダルが必要・会員サイト内（要ログイン）",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "29",
@@ -437,7 +493,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未着手",
    "url": "https://www.dreammail.jp/",
    "evidence": "公式dreammail.jpで確認（2026/11/11）／きなこNo.64：応募700メダル・会員サイト内（要ログイン）",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "30",
@@ -452,7 +510,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未着手",
    "url": "（X公式アカウント）",
    "evidence": "きなこリスト＋公式X（2026/11/11）",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "31",
@@ -467,7 +527,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未着手",
    "url": "（X公式アカウント）",
    "evidence": "きなこリスト＋公式X（2026/11/11）",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "32",
@@ -482,7 +544,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未着手",
    "url": "https://www.kaldi.co.jp/",
    "evidence": "きなこリスト＋公式Instagram（2026/11/11）／きなこNo.76：ゆめタウンInstagram経由",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "33",
@@ -497,7 +561,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://social.ja-kyosai.or.jp/qa-cp/",
    "evidence": "公式キャンペーンサイト確認（2026-11-19）",
-   "owner": "むぎ"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "34",
@@ -512,7 +578,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://contents.ja-kyosai.or.jp/qa-cp.tokusan-gift/tajima/index.html",
    "evidence": "公式ページの応募規約で確認（2026-11-19）",
-   "owner": "むぎ"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "35",
@@ -527,7 +595,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://www.shochu.or.jp/2026campaign/",
    "evidence": "公式サイトで応募方法・期間・条件を確認（2026-11-19）",
-   "owner": "むぎ"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "36",
@@ -542,7 +612,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://cp.kanmen.com/",
    "evidence": "公式キャンペーンサイト＋フードウイークリー（2026-11-19）",
-   "owner": "むぎ"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "37",
@@ -557,7 +629,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://www.jbia.org/",
    "evidence": "時事ドットコム配信の主催者発表＋まとめ（2026-11-19）",
-   "owner": "むぎ"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "38",
@@ -572,7 +646,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://fukuwarai-giftcp2026.ownly.jp/lot/39265",
    "evidence": "公式 https://fukuwarai-fukushima.jp/news/gift-cp2026.php（2026-11-19）",
-   "owner": "むぎ"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "39",
@@ -587,7 +663,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://www.resource-saving.jp/challenge-2026campaign/",
    "evidence": "東京都・神奈川県・千葉市の報道発表（2026-11-19）",
-   "owner": "むぎ"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "40",
@@ -602,7 +680,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://www.americanmeat.jp/csm/entertainment/",
    "evidence": "公式サイトで期間・賞品・応募方法を確認（2026-11-19）",
-   "owner": "むぎ"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "41",
@@ -617,7 +697,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://www.asahibeer.co.jp/campaign/index.html",
    "evidence": "アサヒ公式キャンペーン一覧＋懸賞当確（2026-11-19）",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "42",
@@ -632,7 +714,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://nichiban.ownly.jp/lot/39210",
    "evidence": "公式 https://www.nichiban.co.jp/news/2026/11_01/（2026-11-19）",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "43",
@@ -647,7 +731,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://www.gorogura.jp/gorogura_meets_dalloyau/",
    "evidence": "日清食品グループ公式ページで確認（2026-11-19）",
-   "owner": "本人（購入）→むぎ"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "44",
@@ -662,7 +748,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "—",
    "evidence": "帝国ホテルキッチン プレスリリース（PR TIMES 2026-09-29）",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "45",
@@ -677,7 +765,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://foodays.jp/lp/isc-iscgdcp_o_2611_002/",
    "evidence": "FOODAYS公式（2026-11-19）／対象は東急ストア・ベルク・フィール・平和堂等で関東中心",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "46",
@@ -692,7 +782,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://foodays.jp/lp/isc-iscgdcp_o_2611_004/",
    "evidence": "FOODAYS公式（2026-11-19）",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "47",
@@ -707,7 +799,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://kakuyasu.scinable.net/survey?aid=kakuyasu&surveyKey=6",
    "evidence": "カクヤス創業祭プレスリリース（2026-11-01）＋特設ページ（2026-11-19）",
-   "owner": "むぎ"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "48",
@@ -722,7 +816,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://pay.rakuten.co.jp/campaign/chotoku-kangen/",
    "evidence": "キャンペーン番号CWDCR-1870（2026-11-19確認）",
-   "owner": "むぎ"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "49",
@@ -737,7 +833,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://stamp.yahoo.co.jp/stamp/checkin",
    "evidence": "公式（2026-11-19確認）",
-   "owner": "むぎ→本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "50",
@@ -752,7 +850,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://www.ponta.jp/c/campaign/blackeveryday_2611/",
    "evidence": "公式（2026-11-19確認）",
-   "owner": "むぎ＋本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "51",
@@ -767,7 +867,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "—",
    "evidence": "懸賞マニア／超得ニュース掲載（2026-11-19時点・公式未確認）",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "52",
@@ -782,7 +884,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "—",
    "evidence": "アタリバ（2026-11-19・公式確認済み）",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "53",
@@ -797,7 +901,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "—",
    "evidence": "アタリバ（2026-11-19）",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "54",
@@ -812,7 +918,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://www2.enq-plus.com/enq/sfcmachi/calendar-form/2027/",
    "evidence": "住友林業 公式ニュースリリース（2026-11-09）",
-   "owner": "むぎ"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "55",
@@ -827,7 +935,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "—",
    "evidence": "懸賞タイム（公式確認・2026-11-19更新／最終確認11-03）",
-   "owner": "むぎ"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "56",
@@ -842,7 +952,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "—",
    "evidence": "懸賞タイム（公式確認・2026-11-19／最終確認11-05）",
-   "owner": "むぎ"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "57",
@@ -857,7 +969,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "—",
    "evidence": "懸賞タイム（公式確認・2026-11-19／最終確認11-03）",
-   "owner": "むぎ"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "58",
@@ -872,7 +986,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "—",
    "evidence": "懸賞タイム（公式確認・2026-11-19）＋アタリバ",
-   "owner": "むぎ"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "59",
@@ -887,7 +1003,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "—",
    "evidence": "懸賞タイム（公式確認・2026-11-19）",
-   "owner": "むぎ"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "60",
@@ -902,7 +1020,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "—",
    "evidence": "懸賞タイム（公式確認・2026-11-19）",
-   "owner": "むぎ"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "61",
@@ -917,7 +1037,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "—",
    "evidence": "懸賞タイム（公式確認・2026-11-19）",
-   "owner": "むぎ"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "62",
@@ -932,7 +1054,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "—",
    "evidence": "懸賞タイム（公式確認・2026-11-19）",
-   "owner": "むぎ"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "63",
@@ -947,7 +1071,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://www.dreammail.jp/",
    "evidence": "きなこ2026-11-11リスト（No.65）。No.29の1,000枚とは別キャンペーン。応募にメダルが必要",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "64",
@@ -962,7 +1088,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://www.dreammail.jp/",
    "evidence": "きなこ2026-11-11リスト（No.66）。賞品はサイト内ポイント。2人に1人で当たりやすい",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "65",
@@ -977,7 +1105,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://www.dreammail.jp/",
    "evidence": "きなこ2026-11-11リスト（No.67）",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "66",
@@ -992,7 +1122,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://www.dreammail.jp/",
    "evidence": "きなこ2026-11-11リスト（No.68）",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "67",
@@ -1007,7 +1139,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://www.dreammail.jp/",
    "evidence": "きなこ2026-11-11リスト（No.69）。No.7の伊藤園新俳句大賞とは別キャンペーン",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "68",
@@ -1022,7 +1156,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://www.chance.com/",
    "evidence": "きなこ2026-11-11リスト（No.70）。チャンスイット掲載情報は2026-11-06取得（公式で要確認）",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "69",
@@ -1037,7 +1173,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://www.chance.com/",
    "evidence": "きなこ2026-11-11リスト（No.71）",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "70",
@@ -1052,7 +1190,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://www.chance.com/",
    "evidence": "きなこ2026-11-11リスト（No.72）",
-   "owner": "むぎ（下書き）→本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "71",
@@ -1067,7 +1207,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://www.chance.com/",
    "evidence": "きなこ2026-11-11リスト（No.73）。賞品はレディース下着（サイズ・要否は本人判断）",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   },
   {
    "no": "72",
@@ -1082,7 +1224,9 @@ window.SWEEP_SNAPSHOT = {
    "status": "未応募",
    "url": "https://www.fruitmail.net/",
    "evidence": "きなこ2026-11-11リスト（No.77）。登録後5日以内・登録月末まで等の期限条件あり",
-   "owner": "本人"
+   "owner": "未振り分け",
+   "mugi": "",
+   "kinako": ""
   }
  ]
 };

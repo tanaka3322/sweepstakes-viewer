@@ -48,6 +48,15 @@
   .assign button.cur{ background:var(--ok); border-color:var(--ok); color:#fff; font-weight:700; }
   .assign button:active{ opacity:.75; }
   .assign button:disabled{ opacity:.5; }
+  .cap{ display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .cap .lab{ font-size:12px; color:var(--muted); font-weight:600; }
+  .capbtn{ border-radius:999px; padding:8px 14px; font-size:14px; min-height:38px; display:inline-flex; align-items:center;
+        border:1px solid var(--line); background:var(--card); color:var(--muted); font-weight:700; }
+  .capbtn.v1{ background:#1565c0; border-color:#1565c0; color:#fff; }
+  .capbtn.v2{ background:#fdd835; border-color:#e0bd1d; color:#22201c; }
+  .capbtn.v3{ background:#c62828; border-color:#c62828; color:#fff; }
+  .legend{ font-size:12px; color:var(--muted); margin-top:6px; line-height:1.6; }
+  .dot{ display:inline-block; width:10px; height:10px; border-radius:50%; margin:0 2px 0 7px; vertical-align:-1px; }
   .toast{ position:fixed; left:12px; right:12px; bottom:14px; z-index:20; display:none;
         background:#22201c; color:#fff; font-size:14px; line-height:1.5; border-radius:12px;
         padding:12px 14px; box-shadow:0 4px 16px rgba(0,0,0,.25); }
@@ -66,6 +75,7 @@
     <button class="tab" data-tab="daily">毎日応募</button>
   </div>
   <input class="search" id="q" type="search" placeholder="キャンペーン名・主催で検索" autocomplete="off">
+  <div class="legend">可否ボタン（シートの「むぎ」「きなこ」欄の入力で色が変わります）：<span class="dot" style="background:#1565c0"></span>1 できる<span class="dot" style="background:#fdd835"></span>2 たぶんできる・未検証<span class="dot" style="background:#c62828"></span>3 絶対にできない</div>
 </header>
 <main>
   <div class="count" id="count"></div>
@@ -126,6 +136,14 @@ function tabOf(it){
   return "assigned";
 }
 const OWNER_CHOICES = ["本人", "むぎ", "きなこ"];
+// ---- 可否ボタン：シートの むぎ(N列)／きなこ(O列) 欄の入力 1・2・3 で色が変わる ----
+// 1=できる（青）／2=たぶんできる・未検証（黄色）／3=絶対にできない（赤）／未入力=グレー
+const CAP_LABEL = {"1":"1 できる","2":"2 たぶんできる","3":"3 絶対にできない"};
+function capBtn(who, val){
+  const v = String(val ?? "").trim();
+  const cls = CAP_LABEL[v] ? " v" + v : "";
+  return '<span class="capbtn' + cls + '">' + who + "：" + (CAP_LABEL[v] || "未入力") + '</span>';
+}
 
 let toastTimer = null;
 function toast(msg){
@@ -174,7 +192,7 @@ async function tryLive(){
     const res = await fetch("https://docs.google.com/spreadsheets/d/"+id+"/gviz/tq?tqx=out:json&sheet="+encodeURIComponent("応募リスト"), {signal: ctl.signal});
     const txt = await res.text();
     const json = JSON.parse(txt.substring(txt.indexOf("{"), txt.lastIndexOf("}")+1));
-    const cols = ["no","name","sponsor","prize","deadline","decision","category","agent_can","user_must","status","url","evidence","owner"];
+    const cols = ["no","name","sponsor","prize","deadline","decision","category","agent_can","user_must","status","url","evidence","owner","mugi","kinako"];
     const rows = (json.table.rows||[]).map((r, idx) => {
       const o = {};
       cols.forEach((k,i)=>{ const c = r.c && r.c[i]; o[k] = c ? (c.f ?? (c.v==null?"":String(c.v))) : ""; });
@@ -233,6 +251,9 @@ function render(){
       + '<div class="assign"><span class="lab">担当を決める：</span>'
       + OWNER_CHOICES.map(o => '<button type="button" data-no="'+esc(it.no)+'" data-owner="'+o+'"'
           + (String(it.owner||"").trim() === o ? ' class="cur"' : '') + '>' + o + '</button>').join("")
+      + '</div>'
+      + '<div class="cap"><span class="lab">できる？：</span>'
+      + capBtn("むぎ", it.mugi) + capBtn("きなこ", it.kinako)
       + '</div>'
       + '</article>';
   }).join("");
