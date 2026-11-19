@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>懸賞リスト（スマホ用）</title>
+<style>
+  :root{ --bg:#f6f4ef; --card:#fff; --ink:#22201c; --muted:#6f6a5e; --line:#e3ded2;
+         --accent:#b3541e; --today:#c62828; --soon:#ef6c00; --ok:#2e7d32; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;
+        background:var(--bg); color:var(--ink); -webkit-text-size-adjust:100%; }
+  header{ position:sticky; top:0; z-index:10; background:var(--bg); padding:10px 12px 6px;
+          border-bottom:1px solid var(--line); }
+  h1{ font-size:18px; margin:0 0 2px; }
+  .meta{ font-size:12px; color:var(--muted); }
+  .tabs{ display:flex; gap:6px; overflow-x:auto; padding:8px 0 4px; -webkit-overflow-scrolling:touch; }
+  .tab{ flex:0 0 auto; border:1px solid var(--line); background:var(--card); color:var(--ink);
+        border-radius:999px; padding:8px 12px; font-size:14px; min-height:40px; }
+  .tab.on{ background:var(--accent); border-color:var(--accent); color:#fff; font-weight:700; }
+  .search{ width:100%; font-size:16px; padding:10px 12px; border:1px solid var(--line);
+           border-radius:10px; background:var(--card); margin-top:6px; }
+  main{ padding:10px 12px 40px; }
+  .count{ font-size:13px; color:var(--muted); margin:2px 0 8px; }
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:14px;
+         padding:12px; margin-bottom:10px; }
+  .card.today{ border:2px solid var(--today); }
+  .card.expired{ opacity:.55; }
+  .name{ font-size:16px; font-weight:700; line-height:1.4; }
+  .sub{ font-size:13px; color:var(--muted); margin-top:2px; line-height:1.5; }
+  .row{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .chip{ font-size:12px; border-radius:999px; padding:4px 9px; background:#f0ead9; }
+  .chip.dl-today{ background:var(--today); color:#fff; font-weight:700; }
+  .chip.dl-soon{ background:var(--soon); color:#fff; font-weight:700; }
+  .chip.done{ background:var(--ok); color:#fff; }
+  .detail{ font-size:13px; line-height:1.6; margin-top:8px; }
+  .detail b{ color:var(--muted); font-weight:600; }
+  .go{ display:block; text-align:center; margin-top:10px; padding:13px; border-radius:12px;
+       background:var(--accent); color:#fff; font-size:16px; font-weight:700; text-decoration:none; }
+  .go:active{ opacity:.8; }
+  .empty{ text-align:center; color:var(--muted); padding:32px 0; font-size:14px; }
+  footer{ font-size:12px; color:var(--muted); text-align:center; padding:0 12px 24px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>懸賞リスト</h1>
+  <div class="meta" id="meta">読み込み中…</div>
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-tab="soon">締切が近い順</button>
+    <button class="tab" data-tab="today">今日締切</button>
+    <button class="tab" data-tab="user">わきさか用</button>
+    <button class="tab" data-tab="done">応募済み</button>
+    <button class="tab" data-tab="all">全件</button>
+  </div>
+  <input class="search" id="q" type="search" placeholder="キャンペーン名・主催で検索" autocomplete="off">
+</header>
+<main>
+  <div class="count" id="count"></div>
+  <div id="list"></div>
+</main>
+<footer>データ元：Googleスプレッドシート「懸賞_共通応募リスト」／応募は公式URL先で本人が行います</footer>
+
+<script src="data.js"></script>
+<script>
+"use strict";
+// ---- 締切パース：「2026/11/30 23:59」「2026/12/06」「2026/11/29（…）」等に対応 ----
+function parseDeadline(s){
+  if(!s) return null;
+  const m = String(s).match(/(\d{4})\/(\d{1,2})\/(\d{1,2})(?:\s+(\d{1,2}):(\d{2}))?/);
+  if(!m) return null;
+  return new Date(+m[1], +m[2]-1, +m[3], +(m[4]||23), +(m[5]||59), 59);
+}
+function startOfDay(d){ const x=new Date(d); x.setHours(0,0,0,0); return x; }
+function daysLeft(dl, now){
+  if(!dl) return null;
+  return Math.round((startOfDay(dl) - startOfDay(now)) / 86400000);
+}
+function esc(s){
+  return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function safeUrl(u){
+  try{ const x=new URL(String(u)); return (x.protocol==="https:"||x.protocol==="http:") ? x.href : ""; }
+  catch(e){ return ""; }
+}
+
+let ITEMS = (window.SWEEP_SNAPSHOT && window.SWEEP_SNAPSHOT.items) || [];
+let SOURCE_LABEL = "スナップショット " + ((window.SWEEP_SNAPSHOT||{}).generated_at || "");
+let tab = "soon";
+
+// ---- 可能ならライブ取得（シートがリンク共有で読める場合のみ成功。失敗時はスナップショット） ----
+async function tryLive(){
+  const id = (window.SWEEP_SNAPSHOT||{}).spreadsheet_id;
+  if(!id) return;
+  try{
+    const ctl = new AbortController(); setTimeout(()=>ctl.abort(), 6000);
+    const res = await fetch("https://docs.google.com/spreadsheets/d/"+id+"/gviz/tq?tqx=out:json&sheet="+encodeURIComponent("応募リスト"), {signal: ctl.signal});
+    const txt = await res.text();
+    const json = JSON.parse(txt.substring(txt.indexOf("{"), txt.lastIndexOf("}")+1));
+    const cols = ["no","name","sponsor","prize","deadline","decision","category","agent_can","user_must","status","url","evidence","owner"];
+    const rows = (json.table.rows||[]).map(r => {
+      const o = {};
+      cols.forEach((k,i)=>{ const c = r.c && r.c[i]; o[k] = c ? (c.f ?? (c.v==null?"":String(c.v))) : ""; });
+      return o;
+    }).filter(o => o.name);
+    if(rows.length >= 10){ ITEMS = rows; SOURCE_LABEL = "ライブ取得（シート連携）"; render(); }
+  }catch(e){ /* スナップショットのまま */ }
+}
+
+function filtered(){
+  const now = new Date();
+  const q = document.getElementById("q").value.trim();
+  let list = ITEMS.map(it => ({...it, _dl: parseDeadline(it.deadline), _left: null}))
+                    .map(it => (it._left = daysLeft(it._dl, now), it));
+  if(tab === "today") list = list.filter(it => it._left === 0);
+  else if(tab === "user") list = list.filter(it => String(it.owner||"").includes("本人") || /^②|^③|^④/.test(String(it.category||"")));
+  else if(tab === "done") list = list.filter(it => String(it.status||"").startsWith("応募済"));
+  else if(tab === "soon") list = list.filter(it => it._left === null || it._left >= 0);
+  // "all" は絞らない
+  if(q) list = list.filter(it => (it.name+" "+it.sponsor).includes(q));
+  list.sort((a,b)=>{
+    if(a._dl && b._dl) return a._dl - b._dl;
+    if(a._dl) return -1; if(b._dl) return 1; return 0;
+  });
+  return list;
+}
+
+function render(){
+  const now = new Date();
+  document.getElementById("meta").textContent =
+    "全" + ITEMS.length + "件 ／ " + SOURCE_LABEL + " ／ " + now.toLocaleDateString("ja-JP") + " 時点";
+  const list = filtered();
+  document.getElementById("count").textContent = list.length + "件表示";
+  const el = document.getElementById("list");
+  if(!list.length){ el.innerHTML = '<div class="empty">該当する懸賞がありません</div>'; return; }
+  el.innerHTML = list.map(it => {
+    const left = it._left;
+    const expired = left !== null && left < 0;
+    const dlChip = left === null ? '<span class="chip">締切未確認</span>'
+      : left === 0 ? '<span class="chip dl-today">今日締切</span>'
+      : left > 0 && left <= 3 ? '<span class="chip dl-soon">あと'+left+'日</span>'
+      : left > 0 ? '<span class="chip">あと'+left+'日</span>'
+      : '<span class="chip">期限切れ</span>';
+    const done = String(it.status||"").startsWith("応募済");
+    const url = safeUrl(it.url);
+    return '<article class="card'+(left===0?" today":"")+(expired?" expired":"")+'">'
+      + '<div class="name">'+esc(it.name)+'</div>'
+      + '<div class="sub">'+esc(it.sponsor)+' ／ '+esc(it.prize)+'</div>'
+      + '<div class="row">'+dlChip
+      + '<span class="chip">締切 '+esc(it.deadline)+'</span>'
+      + (done ? '<span class="chip done">'+esc(it.status)+'</span>' : '<span class="chip">'+esc(it.status)+'</span>')
+      + '<span class="chip">担当：'+esc(it.owner)+'</span>'
+      + '<span class="chip">'+esc(it.category)+'</span></div>'
+      + (it.user_must && it.user_must !== "なし" && !String(it.user_must).startsWith("なし（")
+          ? '<div class="detail"><b>本人がやること：</b>'+esc(it.user_must)+'</div>' : '')
+      + (url ? '<a class="go" href="'+esc(url)+'" target="_blank" rel="noopener">公式ページを開く</a>'
+             : '<div class="detail"><b>応募先：</b>'+esc(it.url || "URL未設定")+'（ボタンなし）</div>')
+      + '</article>';
+  }).join("");
+}
+
+document.getElementById("tabs").addEventListener("click", e => {
+  const b = e.target.closest(".tab"); if(!b) return;
+  tab = b.dataset.tab;
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t === b));
+  render();
+});
+document.getElementById("q").addEventListener("input", render);
+render();
+tryLive();
+</script>
+</body>
+</html>

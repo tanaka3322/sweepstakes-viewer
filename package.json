@@ -1,0 +1,1 @@
+{"description":"懸賞_共通応募リストのスマホ専用ビューア（案②）","engines":{"node":">=18"},"name":"sweepstakes-viewer","private":true,"scripts":{"start":"node server.js"},"version":"0.1.0"}
