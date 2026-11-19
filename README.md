@@ -5,98 +5,132 @@ iPhone向けカード画面から見る／担当を決めるためのページ�
 Googleスプレッドシート＋Apps Script 中継は使いません（v1.0 / 2026-11-19 移行）。
 
 - リポジトリ：https://github.com/tanaka3322/sweepstakes-viewer （public）
-- 公開URL：https://sweepstakes-viewer.vercel.app/ （main へ push すると自動で再デプロイ）
+- 公開URL：https://sweepstakes-viewer.vercel.app/
+- API：https://sweepstakes-viewer.vercel.app/api/items
 - 保存先：Vercel Storage の **Upstash Redis**（リソース名 `sweepstakes-kv`／東京 hnd1／Free プラン）
-- API：`https://sweepstakes-viewer.vercel.app/api/sweepstakes`
 
 ## しくみ
 
 ```
 iPhone (public/index.html)
-    │  fetch  /api/sweepstakes   （GET=読む / PATCH=担当を変える）
+    │  fetch  /api/items   （GET=読む / PATCH=担当や状況を変える）
     ▼
-Vercel Serverless Function  api/sweepstakes.js
+Vercel Serverless Function  api/items/*
     │  Redis REST（環境変数 KV_REST_API_URL / KV_REST_API_TOKEN）
     ▼
 Upstash Redis
     sweep:items … ハッシュ。フィールド=No、値=1件分のJSON
-    sweep:meta  … 最終更新時刻など
+    sweep:meta  … 最終更新時刻・最終更新者など
 ```
 
-- 1件＝1フィールドで持つので、むぎときなこが別の案件を同時に更新しても消し合わない。
+- 1件＝1フィールドで持つので、むぎときなこが別々の案件を同時に更新しても消し合わない。
 - 画面は毎回APIから取り直す（キャッシュ無効）。「最新を読み込む」ボタンでも再取得できる。
-- スプレッドシートは**もう更新しません**。移行時点の内容を `data/seed.json`（72件）に控えてある。
+- スプレッドシートはもう更新しない。移行時点の内容を `data/seed.json`（72件）に控えてある。
   シートは読み取り専用の控えとして残している。
 
-## API仕様（きなこ・むぎ共通）
+## API仕様（確定版）
 
-共通の約束：
+### 共通
 
-- 形式はJSON。読み取り（GET）は合言葉なしでOK。書き込みは合言葉が必要。
-- 合言葉は `x-sweep-passcode: <合言葉>` ヘッダー、または本文の `passcode` で渡す。
-- 合言葉の初期値は `kinako3150`（Vercel の環境変数 `SWEEP_PASSCODE` で変更可）。
-- 書き込みの `by` に「きなこ」「むぎ」などを入れると、最終更新者として `sweep:meta` に残る。
+- ベースURL：`https://sweepstakes-viewer.vercel.app/api/items`
+- 認証：ヘッダー **`x-chat-passcode: kinako3150`**（不一致は `{"ok":false,"error":"bad_passcode"}` / HTTP 401）
+  - 合言葉は Vercel の環境変数 `SWEEP_PASSCODE` で変更可。変えたら `public/config.js` と きなこ側も同じ値に。
+  - 旧ヘッダー `x-sweep-passcode` も受け付ける。本文の `passcode` でも可（互換用）。
+- 形式：JSON（UTF-8）。成功 `{"ok":true,…}`／失敗 `{"ok":false,"error":"コード","message":"日本語の説明"}`
 - 応答はすべて `Cache-Control: no-store`。
+- 書き込み時の `by` に「きなこ」「むぎ」などを入れると、最終更新者として残る。
 
-| メソッド | URL | 用途 | 本文の例 |
-|---|---|---|---|
-| GET | `/api/sweepstakes` | 全件取得 | — |
-| GET | `/api/sweepstakes?no=12` | 1件取得 | — |
-| GET | `/api/sweepstakes?health=1` | DB接続の確認 | — |
-| PATCH | `/api/sweepstakes?no=12` | 1件の項目を更新 | `{"passcode":"…","owner":"むぎ","by":"きなこ"}` |
-| POST | `/api/sweepstakes` | 1件追加（Noは自動採番） | `{"passcode":"…","item":{"name":"…","sponsor":"…"},"by":"きなこ"}` |
-| PUT | `/api/sweepstakes` | まとめて投入（移行・復旧） | `{"passcode":"…","items":[…],"mode":"replace"}` |
-| DELETE | `/api/sweepstakes?no=12` | 1件削除 | ヘッダーに合言葉 |
+### 項目（16項目＋updated_at）
 
-### 項目（16個）
+| キー | 意味 | 値 |
+|---|---|---|
+| `no` | No（キー。作成後は変更不可） | "1"〜 |
+| `name` | キャンペーン名 | 文字列（必須） |
+| `sponsor` | 主催企業 | 文字列 |
+| `prize` | 賞品・当選人数 | 文字列 |
+| `deadline` | 締切 | `2026/11/30 23:59` 等の文字列 |
+| `decision` | やるかどうか | 文字列 |
+| `category` | 分類 | `①完全代行` など |
+| `agent_can` | きなこ・むぎができること | 文字列 |
+| `user_must` | 本人がやること | 文字列 |
+| `status` | 応募状況 | `未応募` / `応募済…` など |
+| `url` | 公式URL | http(s) |
+| `evidence` | 根拠・確認状況 | 文字列 |
+| `owner` | 担当 | `""` / `未振り分け` / `本人` / `むぎ` / `きなこ` / `やらない` / `応募しない`（他は `bad_owner`） |
+| `mugi` | むぎ可否 | `""` / `"1"`（できる）/ `"2"`（たぶんできる）/ `"3"`（できない） |
+| `kinako` | きなこ可否 | 同上 |
+| `daily` | 毎日応募 | `"○"` / `""`（`true`/`false` も受付、返却は `"○"`/`""`） |
+| `updated_at` | 更新時刻 | ISO8601（サーバーが付ける） |
 
-`no`（キー・変更不可）、`name` キャンペーン名、`sponsor` 主催、`prize` 賞品・当選人数、
-`deadline` 締切、`decision` やるかどうか、`category` 分類、`agent_can` きなこ・むぎができること、
-`user_must` 本人がやること、`status` 応募状況、`url` 公式URL、`evidence` 根拠・確認状況、
-`owner` 担当、`mugi` むぎ可否、`kinako` きなこ可否、`daily` 毎日応募。
+個人情報の項目は作らない。
 
-- `owner` は `本人` / `むぎ` / `きなこ` / `やらない` / `未振り分け` のいずれか。
-- `mugi`・`kinako` は `1`（できる）/ `2`（たぶんできる・未検証）/ `3`（絶対にできない）/ 空欄。
-- `daily` は `○` か空欄。
+### エンドポイント
+
+| メソッド | URL | 用途 |
+|---|---|---|
+| GET | `/api/items` | 全件取得。`?q=` 名前・主催の部分一致、`?include_hidden=1` で「やらない」「応募しない」も含む（既定は除外） |
+| GET | `/api/items/:no` | 1件取得 → `{ok:true,item}` |
+| POST | `/api/items` | 新規追加。`no` 省略時は自動採番。`name+url+deadline` が同じなら `{ok:false,error:"duplicate",no:"既存No"}`（HTTP 409）。成功は 201 で `{ok:true,item}` |
+| PATCH | `/api/items/:no` | 部分更新。送った項目だけ変更し、更新後の1件全体を `{ok:true,item}` で返す |
+| POST | `/api/items/bulk` | 一括更新 `{updates:[{no,…},…]}` → `{ok:true,requested,updated,failed:[{no,error}],items:[…]}`。1件の失敗で他は巻き戻さない |
+| DELETE | `/api/items/:no` | 削除（誤登録の取り消し用）→ `{ok:true,deleted}` |
+| GET | `/api/items?health=1` | DB接続の確認（合言葉不要。`{ok,backend,configured,reachable,itemCount}`） |
+| POST | `/api/items`（`{items:[…],mode:"replace"\|"merge"}`） | まとめて投入（移行・復旧用。人が使う想定） |
+
+### エラーコード
+
+`bad_passcode`(401) / `bad_owner`(400) / `bad_value`(400) / `bad_no`(400) / `bad_name`(400) /
+`no_changes`(400) / `no_not_found`(404) / `duplicate`(409) / `duplicate_no`(409) /
+`db_timeout`(504) / `db_not_configured`(500) / `db_error`(502)
 
 ### 例（curl）
 
 ```bash
-# 読む
-curl -s 'https://sweepstakes-viewer.vercel.app/api/sweepstakes' | head -c 400
+# 読む（全件・非表示も含む）
+curl -s -H 'x-chat-passcode: kinako3150' \
+  'https://sweepstakes-viewer.vercel.app/api/items?include_hidden=1'
+
+# 名前で絞る
+curl -s -H 'x-chat-passcode: kinako3150' \
+  'https://sweepstakes-viewer.vercel.app/api/items?q=%E3%83%94%E3%83%AB%E3%82%AF%E3%83%AB'
 
 # 担当を「むぎ」にする
-curl -s -X PATCH 'https://sweepstakes-viewer.vercel.app/api/sweepstakes?no=12' \
-  -H 'Content-Type: application/json' \
-  -d '{"passcode":"kinako3150","owner":"むぎ","by":"きなこ"}'
+curl -s -X PATCH 'https://sweepstakes-viewer.vercel.app/api/items/12' \
+  -H 'Content-Type: application/json' -H 'x-chat-passcode: kinako3150' \
+  -d '{"owner":"むぎ","by":"きなこ"}'
 
-# 応募状況を更新する（項目は部分的に送ればOK）
-curl -s -X PATCH 'https://sweepstakes-viewer.vercel.app/api/sweepstakes?no=1' \
-  -H 'Content-Type: application/json' \
-  -d '{"passcode":"kinako3150","changes":{"status":"応募済（2026/11/20 きなこ代行）"},"by":"きなこ"}'
+# 応募状況を更新する
+curl -s -X PATCH 'https://sweepstakes-viewer.vercel.app/api/items/1' \
+  -H 'Content-Type: application/json' -H 'x-chat-passcode: kinako3150' \
+  -d '{"status":"応募済（2026/11/20 きなこ代行）","by":"きなこ"}'
 
-# 1件追加する（Noは自動で振られる）
-curl -s -X POST 'https://sweepstakes-viewer.vercel.app/api/sweepstakes' \
-  -H 'Content-Type: application/json' \
-  -d '{"passcode":"kinako3150","item":{"name":"新キャンペーン","sponsor":"主催社","deadline":"2026/12/31 23:59"},"by":"きなこ"}'
+# 1件追加（Noは自動）
+curl -s -X POST 'https://sweepstakes-viewer.vercel.app/api/items' \
+  -H 'Content-Type: application/json' -H 'x-chat-passcode: kinako3150' \
+  -d '{"item":{"name":"新キャンペーン","sponsor":"主催社","deadline":"2026/12/31 23:59"},"by":"きなこ"}'
+
+# 一括更新（1件だけ失敗しても他は通る）
+curl -s -X POST 'https://sweepstakes-viewer.vercel.app/api/items/bulk' \
+  -H 'Content-Type: application/json' -H 'x-chat-passcode: kinako3150' \
+  -d '{"updates":[{"no":"2","owner":"きなこ"},{"no":"999","owner":"むぎ"}],"by":"きなこ"}'
+# → {"ok":true,"requested":2,"updated":1,"failed":[{"no":"999","error":"no_not_found"}],...}
 ```
-
-### エラー
-
-`401 bad_passcode` / `400 bad_owner` / `400 bad_capability` / `404 no_not_found` /
-`504 db_timeout` / `500 db_not_configured` を返す。`message` に日本語の説明が入る。
 
 ## 画面
 
 - タブは5つ：**未振り分け / 振り分け済み / 応募済み / 毎日応募 / やらない**。
   どのタブにも件数を表示し、0件のときは「未振り分けは0件です（全件どれかの担当に振り分け済み）」と
   件数のあるタブへのボタンを出す。
+- 振り分けの決まり：非表示（`owner` が「やらない」「応募しない」）→「やらない」タブ／
+  毎日応募（`daily=="○"` かつ締切当日まで）→「毎日応募」／
+  担当なし（`owner`が空・未振り分け・未定・保留）→「未振り分け」／
+  担当あり＋`status`が「応募済」で始まる→「応募済み」／それ以外→「振り分け済み」。
 - カード：左上 `No.○`、名前、主催／賞品、締切（今日締切は赤、あと3日以内はオレンジ、期限切れは灰色）、
   応募状況、担当、分類、本人がやること、公式URLボタン。
 - 担当ボタン：`本人` / `むぎ` / `きなこ` ＋ `やらない`。
-  色はその人の可否（`mugi`・`kinako` 欄の 1=青 / 2=黄 / 3=赤、未入力=色なし）。
+  色はその人の可否（`mugi`・`kinako` の 1=青 / 2=黄 / 3=赤、未入力=色なし）。
   **いまの担当は太い黒枠**で示す（色は可否の意味なので枠で区別）。
-- 押した瞬間に画面へ反映し、DBへの書き込みが10秒でタイムアウトしたとき・失敗したときは
+- 押した瞬間に画面へ反映し、書き込みが10秒でタイムアウトしたとき・失敗したときは
   **元の担当に戻して**「更新できませんでした：理由」と「最新を読み込み直す」ボタンを出す。
   書き込み中はそのカードの4ボタンを押せなくする（連打の二重書き込み防止）。
 - 「やらない」は**確認ダイアログ**を出してから移動。押した案件は「やらない」タブに残り、
@@ -127,7 +161,7 @@ KV_REST_API_URL=... KV_REST_API_TOKEN=... npm start   # → http://localhost:321
 
 | 旧 | 新 |
 |---|---|
-| 画面が Google シートの gviz を直読み＋スナップショット `data.js` | 自サイトの `/api/sweepstakes` から取得（キャッシュ無効） |
+| 画面が Google シートの gviz を直読み＋スナップショット `data.js` | 自サイトの `/api/items` から取得（キャッシュ無効） |
 | 担当の書き込みは Apps Script 中継 | Serverless Function が Upstash Redis へ直接書き込み |
 | スナップショット生成 `tools/build_data.py` | 不要（DBが正）。`data/seed.json` は移行・復旧用 |
 
