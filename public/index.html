@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f4ef">
 <title>懸賞リスト（スマホ用）</title>
 <style>
   :root{ --bg:#f6f4ef; --card:#fff; --ink:#22201c; --muted:#6f6a5e; --line:#e3ded2;
@@ -12,21 +13,31 @@
         background:var(--bg); color:var(--ink); -webkit-text-size-adjust:100%; }
   header{ position:sticky; top:0; z-index:10; background:var(--bg); padding:10px 12px 6px;
           border-bottom:1px solid var(--line); }
-  h1{ font-size:18px; margin:0 0 2px; }
-  .meta{ font-size:12px; color:var(--muted); }
+  .headrow{ display:flex; align-items:center; gap:8px; }
+  h1{ font-size:18px; margin:0; flex:1; }
+  .refresh{ border:1px solid var(--line); background:var(--card); color:var(--ink);
+            border-radius:999px; padding:7px 12px; font-size:13px; min-height:36px; }
+  .refresh:active{ opacity:.7; }
+  .meta{ font-size:12px; color:var(--muted); margin-top:3px; }
   .tabs{ display:flex; gap:6px; overflow-x:auto; padding:8px 0 4px; -webkit-overflow-scrolling:touch; }
   .tab{ flex:0 0 auto; border:1px solid var(--line); background:var(--card); color:var(--ink);
-        border-radius:999px; padding:8px 12px; font-size:14px; min-height:40px; }
+        border-radius:999px; padding:8px 12px; font-size:14px; min-height:40px; white-space:nowrap; }
+  .tab .cnt{ display:inline-block; margin-left:5px; font-size:12px; font-weight:700;
+             color:var(--muted); background:#efe9dc; border-radius:999px; padding:1px 7px; }
   .tab.on{ background:var(--accent); border-color:var(--accent); color:#fff; font-weight:700; }
+  .tab.on .cnt{ background:rgba(255,255,255,.28); color:#fff; }
+  .tab.zero .cnt{ background:#f2eee5; color:#a49d8d; }
   .search{ width:100%; font-size:16px; padding:10px 12px; border:1px solid var(--line);
            border-radius:10px; background:var(--card); margin-top:6px; }
+  .legend{ font-size:11.5px; color:var(--muted); margin-top:6px; line-height:1.6; }
   main{ padding:10px 12px 40px; }
   .count{ font-size:13px; color:var(--muted); margin:2px 0 8px; }
   .card{ background:var(--card); border:1px solid var(--line); border-radius:14px;
          padding:12px; margin-bottom:10px; }
   .card.today{ border:2px solid var(--today); }
-  .card.expired{ opacity:.55; }
-  .cardtop{ display:flex; align-items:center; margin-bottom:6px; }
+  .card.expired{ opacity:.6; }
+  .card.busy{ opacity:.7; }
+  .cardtop{ display:flex; align-items:center; gap:6px; margin-bottom:6px; }
   .no{ font-size:13px; font-weight:700; color:#fff; background:var(--ink);
        border-radius:8px; padding:3px 9px; letter-spacing:.02em; }
   .name{ font-size:16px; font-weight:700; line-height:1.4; }
@@ -36,263 +47,383 @@
   .chip.dl-today{ background:var(--today); color:#fff; font-weight:700; }
   .chip.dl-soon{ background:var(--soon); color:#fff; font-weight:700; }
   .chip.done{ background:var(--ok); color:#fff; }
+  .chip.owner{ background:#e8e2d3; font-weight:700; }
   .detail{ font-size:13px; line-height:1.6; margin-top:8px; }
   .detail b{ color:var(--muted); font-weight:600; }
   .go{ display:block; text-align:center; margin-top:10px; padding:13px; border-radius:12px;
        background:var(--accent); color:#fff; font-size:16px; font-weight:700; text-decoration:none; }
   .go:active{ opacity:.8; }
   .assign{ display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-top:10px; }
-  .assign .lab{ font-size:12px; color:var(--muted); font-weight:600; }
+  .assign .lab{ font-size:12px; color:var(--muted); font-weight:600; width:100%; }
   .assign button{ border:1px solid var(--line); background:var(--card); color:var(--ink);
         border-radius:999px; padding:8px 14px; font-size:14px; min-height:38px; }
-  .assign button.cur{ background:var(--ok); border-color:var(--ok); color:#fff; font-weight:700; }
   .assign button.skip{ color:var(--today); border-color:var(--today); }
   .assign button.skip.cur{ background:var(--today); border-color:var(--today); color:#fff; }
   .assign button.capv1{ background:#1565c0; border-color:#1565c0; color:#fff; }
   .assign button.capv2{ background:#fdd835; border-color:#e0bd1d; color:#22201c; }
   .assign button.capv3{ background:#c62828; border-color:#c62828; color:#fff; }
-  .assign button.capv1.cur, .assign button.capv2.cur, .assign button.capv3.cur{ outline:3px solid #22201c; outline-offset:1px; }
+  /* いまの担当は全員そろって「太い黒枠」で示す（色はその人の可否を表すので枠で区別する） */
+  .assign button.cur{ outline:3px solid #22201c; outline-offset:1px; font-weight:700; }
   .assign button:active{ opacity:.75; }
-  .assign button:disabled{ opacity:.5; }
-  .cap{ display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-top:8px; }
-  .cap .lab{ font-size:12px; color:var(--muted); font-weight:600; }
-  .capbtn{ border-radius:999px; padding:8px 14px; font-size:14px; min-height:38px; display:inline-flex; align-items:center;
-        border:1px solid var(--line); background:var(--card); color:var(--muted); font-weight:700; }
-  .capbtn.v1{ background:#1565c0; border-color:#1565c0; color:#fff; }
-  .capbtn.v2{ background:#fdd835; border-color:#e0bd1d; color:#22201c; }
-  .capbtn.v3{ background:#c62828; border-color:#c62828; color:#fff; }
-  .legend{ font-size:12px; color:var(--muted); margin-top:6px; line-height:1.6; }
-  .dot{ display:inline-block; width:10px; height:10px; border-radius:50%; margin:0 2px 0 7px; vertical-align:-1px; }
+  .assign button:disabled{ opacity:.45; }
+  .legend .dot{ display:inline-block; width:10px; height:10px; border-radius:50%; margin:0 2px 0 7px; vertical-align:-1px; }
   .toast{ position:fixed; left:12px; right:12px; bottom:14px; z-index:20; display:none;
         background:#22201c; color:#fff; font-size:14px; line-height:1.5; border-radius:12px;
         padding:12px 14px; box-shadow:0 4px 16px rgba(0,0,0,.25); }
-  .empty{ text-align:center; color:var(--muted); padding:32px 0; font-size:14px; }
-  footer{ font-size:12px; color:var(--muted); text-align:center; padding:0 12px 24px; }
+  .toast.err{ background:#8e1b1b; }
+  .toast button{ margin-top:8px; display:block; width:100%; border:0; border-radius:10px;
+        background:#fff; color:#22201c; font-size:14px; font-weight:700; padding:10px; }
+  .empty{ text-align:center; color:var(--muted); padding:26px 6px 10px; font-size:14px; line-height:1.7; }
+  .empty .links{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:12px; }
+  .empty .links button{ border:1px solid var(--line); background:var(--card); color:var(--ink);
+        border-radius:999px; padding:9px 14px; font-size:14px; min-height:40px; }
+  footer{ font-size:12px; color:var(--muted); text-align:center; padding:0 12px 24px; line-height:1.6; }
 </style>
 </head>
 <body>
 <header>
-  <h1>懸賞リスト</h1>
+  <div class="headrow">
+    <h1>懸賞リスト</h1>
+    <button class="refresh" id="refresh" type="button">最新を読み込む</button>
+  </div>
   <div class="meta" id="meta">読み込み中…</div>
   <div class="tabs" id="tabs">
-    <button class="tab on" data-tab="unassigned">未振り分け</button>
-    <button class="tab" data-tab="assigned">振り分け済み</button>
-    <button class="tab" data-tab="done">応募済み</button>
-    <button class="tab" data-tab="daily">毎日応募</button>
+    <button class="tab on" data-tab="unassigned" type="button">未振り分け<span class="cnt">-</span></button>
+    <button class="tab" data-tab="assigned" type="button">振り分け済み<span class="cnt">-</span></button>
+    <button class="tab" data-tab="done" type="button">応募済み<span class="cnt">-</span></button>
+    <button class="tab" data-tab="daily" type="button">毎日応募<span class="cnt">-</span></button>
+    <button class="tab" data-tab="skip" type="button">やらない<span class="cnt">-</span></button>
   </div>
   <input class="search" id="q" type="search" placeholder="キャンペーン名・主催で検索" autocomplete="off">
-  <div class="legend">担当ボタンの色は、その人の可否（シートの「むぎ」「きなこ」欄の入力）です：<span class="dot" style="background:#1565c0"></span>1 できる<span class="dot" style="background:#fdd835"></span>2 たぶんできる・未検証<span class="dot" style="background:#c62828"></span>3 絶対にできない（色なし＝未入力）</div>
-  <div class="legend">毎日応募：シートの「毎日応募」欄に○が付いたものが「毎日応募」タブに入ります（応募期間中はずっと表示されます）</div>
+  <div class="legend">担当ボタンの色はその人の可否です（むぎ・きなこ欄）：<span class="dot" style="background:#1565c0"></span>1 できる<span class="dot" style="background:#fdd835"></span>2 たぶんできる<span class="dot" style="background:#c62828"></span>3 できない（色なし＝未入力）／<b>いまの担当は太い黒枠</b></div>
+  <div class="legend">「やらない」は確認のうえ「やらない」タブへ移ります。そこでもう一度担当を押せば戻せます。</div>
 </header>
 <main>
   <div class="count" id="count"></div>
   <div id="list"></div>
 </main>
-<footer>データ元：Googleスプレッドシート「懸賞_共通応募リスト」／応募は公式URL先で本人が行います</footer>
+<footer>データ元：データベース（Vercel Storage / Upstash Redis）／応募は公式URL先で行います</footer>
 <div class="toast" id="toast"></div>
 
-<script src="data.js"></script>
 <script src="config.js"></script>
 <script>
 "use strict";
-// ---- 締切パース：「2026/11/30 23:59」「2026/12/06」「2026/11/29（…）」等に対応 ----
+// ============ 設定 ============
+const CONF = window.SWEEP_CONFIG || {};
+const API = CONF.apiBase || "/api/items";
+const PASSCODE = CONF.passcode || "";
+const WRITE_TIMEOUT_MS = 10000;
+
+// ============ 小物 ============
+function esc(s){
+  return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function safeUrl(u){
+  try{ const x = new URL(String(u)); return (x.protocol === "https:" || x.protocol === "http:") ? x.href : ""; }
+  catch(e){ return ""; }
+}
 function parseDeadline(s){
   if(!s) return null;
   const m = String(s).match(/(\d{4})\/(\d{1,2})\/(\d{1,2})(?:\s+(\d{1,2}):(\d{2}))?/);
   if(!m) return null;
   return new Date(+m[1], +m[2]-1, +m[3], +(m[4]||23), +(m[5]||59), 59);
 }
-function startOfDay(d){ const x=new Date(d); x.setHours(0,0,0,0); return x; }
+function startOfDay(d){ const x = new Date(d); x.setHours(0,0,0,0); return x; }
 function daysLeft(dl, now){
   if(!dl) return null;
   return Math.round((startOfDay(dl) - startOfDay(now)) / 86400000);
 }
-function esc(s){
-  return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-}
-function safeUrl(u){
-  try{ const x=new URL(String(u)); return (x.protocol==="https:"||x.protocol==="http:") ? x.href : ""; }
-  catch(e){ return ""; }
+function two(n){ return n < 10 ? "0" + n : "" + n; }
+function fmtTime(iso){
+  if(!iso) return "";
+  const d = new Date(iso);
+  if(isNaN(d)) return "";
+  return (d.getMonth()+1) + "/" + d.getDate() + " " + two(d.getHours()) + ":" + two(d.getMinutes());
 }
 
-let ITEMS = (window.SWEEP_SNAPSHOT && window.SWEEP_SNAPSHOT.items) || [];
-ITEMS.forEach((it, i) => { it._row = i + 2; }); // スナップショットはシートの行順どおり生成されている
-let SOURCE_LABEL = "スナップショット " + ((window.SWEEP_SNAPSHOT||{}).generated_at || "");
-let tab = "unassigned";
+// ============ 状態 ============
+let ITEMS = [];
+let TAB = "unassigned";
+let LOADED = false;
+let LAST_UPDATED = null;
+let LOAD_ERROR = "";
+const BUSY = new Set();       // 書き込み中のNo
+const TAB_NAMES = { unassigned:"未振り分け", assigned:"振り分け済み", done:"応募済み", daily:"毎日応募", skip:"やらない" };
+const OWNER_CHOICES = ["本人", "むぎ", "きなこ"];
+const CAP_LABEL = { "1":"できる", "2":"たぶんできる", "3":"できない" };
 
-// ---- 未振り分け判定：担当が空欄／未振り分け／未定／保留 のもの（担当者が決まってない） ----
+// ============ 振り分け判定 ============
 function isUnassigned(it){
   const o = String(it.owner || "").trim();
   return o === "" || o === "未振り分け" || o === "未定" || o === "保留" || o === "-" || o === "—";
 }
-// ---- 応募済み判定：応募状況が「応募済」で始まるもの ----
-function isDone(it){
-  return String(it.status || "").startsWith("応募済");
-}
-// ---- 毎日応募判定：シートの「毎日応募」欄（P列）に○が付いているもの ----
+function isDone(it){ return String(it.status || "").startsWith("応募済"); }
 function isDaily(it){
   const v = String(it.daily || "").trim();
   return v.includes("○") || v.includes("◯");
 }
-// ---- 「やらない」判定：担当欄が「やらない」のもの（応募しないと決めた案件） ----
-function isSkip(it){
-  return String(it.owner || "").trim() === "やらない";
+const HIDDEN_OWNERS = ["やらない", "応募しない"];
+function isSkip(it){ return HIDDEN_OWNERS.includes(String(it.owner || "").trim()); }
+function dailyActive(it){
+  if(!isDaily(it)) return false;
+  const left = daysLeft(parseDeadline(it.deadline), new Date());
+  return left === null || left >= 0;
 }
-// ---- 振り分け先（4分類＋「やらない」はどのタブにも出さない） ----
-// 毎日応募：P列に○が付いているもの（担当の有無にかかわらず最優先。
-//   応募期間中＝締切当日まで毎日応募タブに表示し続け、締切を過ぎたら通常の分類に戻る）
-// 未振り分け：担当者が決まってない／応募済み：担当が決まって応募も完了
-// 振り分け済み：担当が決まっているが未応募
 function tabOf(it){
   if(isSkip(it)) return "skip";
-  if(isDaily(it)){
-    const left = daysLeft(parseDeadline(it.deadline), new Date());
-    if(left === null || left >= 0) return "daily";
-  }
+  if(dailyActive(it)) return "daily";
   if(isUnassigned(it)) return "unassigned";
   if(isDone(it)) return "done";
   return "assigned";
 }
-const OWNER_CHOICES = ["本人", "むぎ", "きなこ"];
-// ---- 担当ボタンの色＝その人の可否：シートの むぎ(N列)／きなこ(O列) 欄の入力 1・2・3 で色が変わる ----
-// 1=できる（青）／2=たぶんできる・未検証（黄色）／3=絶対にできない（赤）／未入力=色なし
-const CAP_LABEL = {"1":"1 できる","2":"2 たぶんできる","3":"3 絶対にできない"};
 function capVal(it, who){
   if(who === "むぎ") return String(it.mugi ?? "").trim();
   if(who === "きなこ") return String(it.kinako ?? "").trim();
   return "";
 }
 
-let toastTimer = null;
-function toast(msg){
-  const el = document.getElementById("toast");
-  el.textContent = msg; el.style.display = "block";
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>{ el.style.display = "none"; }, 4200);
+// ============ 通信 ============
+async function req(method, path, body, timeoutMs){
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), timeoutMs || WRITE_TIMEOUT_MS);
+  try{
+    const opt = { method, cache: "no-store", signal: ctl.signal, headers: {} };
+    opt.headers["x-chat-passcode"] = PASSCODE;
+    if(body){
+      opt.headers["Content-Type"] = "application/json";
+      opt.body = JSON.stringify(body);
+    }
+    const res = await fetch(API + (path || ""), opt);
+    let json = null;
+    try{ json = await res.json(); }catch(e){ json = null; }
+    if(!res.ok || !json || json.ok === false){
+      const code = (json && json.error) || ("http_" + res.status);
+      const err = new Error((json && json.message) || code);
+      err.code = code;
+      throw err;
+    }
+    return json;
+  }catch(e){
+    if(e && e.name === "AbortError"){ const t = new Error("timeout"); t.code = "timeout"; throw t; }
+    throw e;
+  }finally{ clearTimeout(timer); }
 }
 
-// ---- 担当をシートへ書き込む（中継 endpoint があれば直接更新、なければシートのセルを開く） ----
-async function setOwner(no, owner, btn){
-  const cfg = window.SWEEP_WRITE || {};
-  const it = ITEMS.find(x => String(x.no) === String(no));
-  if(cfg.endpoint){
-    btn.disabled = true;
-    try{
-      const res = await fetch(cfg.endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ passcode: cfg.passcode || "", no: String(no), owner })
-      });
-      const out = await res.json();
-      if(!out.ok) throw new Error(out.error || "update_failed");
-      if(it) it.owner = owner;
-      toast("担当を「" + owner + "」にしました（シート更新済み）");
-      render();
-    }catch(e){
-      btn.disabled = false;
-      toast("シート更新に失敗しました。通信を確認してもう一度押してください");
-    }
-  }else{
-    // フォールバック：中継が未設定の間は、シートの担当セル（M列・その行）を直接開く
-    const id = (window.SWEEP_SNAPSHOT||{}).spreadsheet_id;
-    const row = it && it._row ? it._row : (parseInt(no, 10) + 1);
-    window.open("https://docs.google.com/spreadsheets/d/" + id + "/edit#gid=282030616&range=M" + row, "_blank");
-    toast("書き込み中継が未設定のため、シートの担当セルを開きました。そこで「" + owner + "」と入力すると反映されます");
+async function load(quiet){
+  if(!quiet) setMeta("読み込み中…");
+  try{
+    const out = await req("GET", "?include_hidden=1&t=" + Date.now(), null, 12000);
+    ITEMS = Array.isArray(out.items) ? out.items : [];
+    LAST_UPDATED = out.updated_at || null;
+    LOAD_ERROR = "";
+    LOADED = true;
+    render();
+    if(!quiet) toast("最新の内容にしました（" + ITEMS.length + "件）");
+  }catch(e){
+    LOAD_ERROR = e.code === "timeout" ? "時間内に応答がありませんでした" : (e.message || "読み込みに失敗しました");
+    LOADED = ITEMS.length > 0;
+    render();
+    if(!quiet) toast("読み込みに失敗しました：" + LOAD_ERROR, true);
   }
 }
 
-// ---- 可能ならライブ取得（シートがリンク共有で読める場合のみ成功。失敗時はスナップショット） ----
-async function tryLive(){
-  const id = (window.SWEEP_SNAPSHOT||{}).spreadsheet_id;
-  if(!id) return;
-  try{
-    const ctl = new AbortController(); setTimeout(()=>ctl.abort(), 6000);
-    const res = await fetch("https://docs.google.com/spreadsheets/d/"+id+"/gviz/tq?tqx=out:json&sheet="+encodeURIComponent("応募リスト"), {signal: ctl.signal});
-    const txt = await res.text();
-    const json = JSON.parse(txt.substring(txt.indexOf("{"), txt.lastIndexOf("}")+1));
-    const cols = ["no","name","sponsor","prize","deadline","decision","category","agent_can","user_must","status","url","evidence","owner","mugi","kinako","daily"];
-    const rows = (json.table.rows||[]).map((r, idx) => {
-      const o = {};
-      cols.forEach((k,i)=>{ const c = r.c && r.c[i]; o[k] = c ? (c.f ?? (c.v==null?"":String(c.v))) : ""; });
-      o._row = idx + 2; // シート上の行番号（1行目=見出し）
-      return o;
-    }).filter(o => o.name);
-    if(rows.length >= 10){ ITEMS = rows; SOURCE_LABEL = "ライブ取得（シート連携）"; render(); }
-  }catch(e){ /* スナップショットのまま */ }
+function setMeta(text){
+  document.getElementById("meta").textContent = text;
+}
+
+// ============ 表示 ============
+function counts(){
+  const c = { unassigned:0, assigned:0, done:0, daily:0, skip:0 };
+  for(const it of ITEMS) c[tabOf(it)] += 1;
+  return c;
+}
+
+function renderTabs(c){
+  document.querySelectorAll("#tabs .tab").forEach(t => {
+    const key = t.dataset.tab;
+    t.classList.toggle("on", key === TAB);
+    t.classList.toggle("zero", c[key] === 0);
+    const badge = t.querySelector(".cnt");
+    if(badge) badge.textContent = String(c[key]);
+  });
 }
 
 function filtered(){
   const now = new Date();
   const q = document.getElementById("q").value.trim();
-  let list = ITEMS.map(it => ({...it, _dl: parseDeadline(it.deadline), _left: null}))
-                    .map(it => (it._left = daysLeft(it._dl, now), it));
-  list = list.filter(it => tabOf(it) === tab);
-  if(q) list = list.filter(it => (it.name+" "+it.sponsor).includes(q));
-  list.sort((a,b)=>{
+  let list = ITEMS.map(it => {
+    const dl = parseDeadline(it.deadline);
+    return Object.assign({}, it, { _dl: dl, _left: daysLeft(dl, now) });
+  });
+  list = list.filter(it => tabOf(it) === TAB);
+  if(q) list = list.filter(it => (String(it.name || "") + " " + String(it.sponsor || "")).includes(q));
+  list.sort((a, b) => {
+    // 期限切れは各タブの末尾へ。残りは締切が近い順。
+    const ae = a._left !== null && a._left < 0;
+    const be = b._left !== null && b._left < 0;
+    if(ae !== be) return ae ? 1 : -1;
     if(a._dl && b._dl) return a._dl - b._dl;
-    if(a._dl) return -1; if(b._dl) return 1; return 0;
+    if(a._dl) return -1;
+    if(b._dl) return 1;
+    return 0;
   });
   return list;
 }
 
-function render(){
-  const now = new Date();
-  document.getElementById("meta").textContent =
-    "全" + ITEMS.length + "件 ／ " + SOURCE_LABEL + " ／ " + now.toLocaleDateString("ja-JP") + " 時点";
-  const list = filtered();
-  document.getElementById("count").textContent = list.length + "件表示";
-  const el = document.getElementById("list");
-  if(!list.length){ el.innerHTML = '<div class="empty">該当する懸賞がありません</div>'; return; }
-  el.innerHTML = list.map(it => {
-    const left = it._left;
-    const expired = left !== null && left < 0;
-    const dlChip = left === null ? '<span class="chip">締切未確認</span>'
-      : left === 0 ? '<span class="chip dl-today">今日締切</span>'
-      : left > 0 && left <= 3 ? '<span class="chip dl-soon">あと'+left+'日</span>'
-      : left > 0 ? '<span class="chip">あと'+left+'日</span>'
-      : '<span class="chip">期限切れ</span>';
-    const done = String(it.status||"").startsWith("応募済");
-    const url = safeUrl(it.url);
-    return '<article class="card'+(left===0?" today":"")+(expired?" expired":"")+'">'
-      + '<div class="cardtop"><span class="no">No.'+esc(it.no || "-")+'</span></div>'
-      + '<div class="name">'+esc(it.name)+'</div>'
-      + '<div class="sub">'+esc(it.sponsor)+' ／ '+esc(it.prize)+'</div>'
-      + '<div class="row">'+dlChip
-      + '<span class="chip">締切 '+esc(it.deadline)+'</span>'
-      + (done ? '<span class="chip done">'+esc(it.status)+'</span>' : '<span class="chip">'+esc(it.status)+'</span>')
-      + (isDaily(it) ? '<span class="chip dl-soon">毎日応募 ○</span>' : '')
-      + '<span class="chip">担当：'+esc(it.owner)+'</span>'
-      + '<span class="chip">'+esc(it.category)+'</span></div>'
-      + (it.user_must && it.user_must !== "なし" && !String(it.user_must).startsWith("なし（")
-          ? '<div class="detail"><b>本人がやること：</b>'+esc(it.user_must)+'</div>' : '')
-      + (url ? '<a class="go" href="'+esc(url)+'" target="_blank" rel="noopener">公式ページを開く</a>'
-             : '<div class="detail"><b>応募先：</b>'+esc(it.url || "URL未設定")+'（ボタンなし）</div>')
-      + '<div class="assign"><span class="lab">担当を決める：</span>'
-      + OWNER_CHOICES.map(o => {
-          const cv = capVal(it, o);
-          const cls = (CAP_LABEL[cv] ? 'capv' + cv + ' ' : '') + (String(it.owner||"").trim() === o ? 'cur' : '');
-          const label = o + (CAP_LABEL[cv] ? '（' + cv + '）' : '');
-          return '<button type="button" class="' + cls.trim() + '" data-no="'+esc(it.no)+'" data-owner="'+o+'">' + label + '</button>';
-        }).join("")
-      + '<button type="button" class="skip'+(isSkip(it) ? ' cur' : '')+'" data-no="'+esc(it.no)+'" data-owner="やらない">やらない</button>'
-      + '</div>'
-      + '</article>';
-  }).join("");
+function emptyState(c){
+  const others = Object.keys(TAB_NAMES).filter(k => k !== TAB && c[k] > 0);
+  const links = others.map(k =>
+    '<button type="button" data-goto="' + k + '">' + esc(TAB_NAMES[k]) + " " + c[k] + "件</button>"
+  ).join("");
+  let msg = "";
+  if(TAB === "unassigned") msg = "未振り分けは0件です。全件どれかの担当に振り分け済みです。";
+  else if(TAB === "assigned") msg = "振り分け済みは0件です。担当を決めた案件がここに出ます。";
+  else if(TAB === "done") msg = "応募済みは0件です。";
+  else if(TAB === "daily") msg = "毎日応募は0件です（毎日応募欄に○が付いた案件がここに出ます）。";
+  else if(TAB === "skip") msg = "やらない案件はまだありません。";
+  const q = document.getElementById("q").value.trim();
+  if(q) msg = "「" + q + "」に一致する案件はこのタブにありません。";
+  return '<div class="empty">' + esc(msg) + (links ? '<div class="links">' + links + "</div>" : "") + "</div>";
 }
 
-document.getElementById("tabs").addEventListener("click", e => {
-  const b = e.target.closest(".tab"); if(!b) return;
-  tab = b.dataset.tab;
-  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t === b));
+function cardHtml(it){
+  const left = it._left;
+  const expired = left !== null && left < 0;
+  const dlChip = left === null ? '<span class="chip">締切未確認</span>'
+    : left === 0 ? '<span class="chip dl-today">今日締切</span>'
+    : left > 0 && left <= 3 ? '<span class="chip dl-soon">あと' + left + '日</span>'
+    : left > 0 ? '<span class="chip">あと' + left + '日</span>'
+    : '<span class="chip">期限切れ</span>';
+  const done = isDone(it);
+  const url = safeUrl(it.url);
+  const busy = BUSY.has(String(it.no));
+  const ownerText = String(it.owner || "").trim() || "未振り分け";
+  const skipTab = TAB === "skip";
+  const buttons = OWNER_CHOICES.map(o => {
+    const cv = capVal(it, o);
+    const cls = [(CAP_LABEL[cv] ? "capv" + cv : ""), (String(it.owner || "").trim() === o ? "cur" : "")].join(" ").trim();
+    const label = o + (CAP_LABEL[cv] ? "（" + CAP_LABEL[cv] + "）" : "");
+    return '<button type="button" class="' + cls + '" data-no="' + esc(it.no) + '" data-owner="' + o + '"' + (busy ? " disabled" : "") + '>' + label + "</button>";
+  }).join("");
+  const skipBtn = '<button type="button" class="skip' + (isSkip(it) ? " cur" : "") + '" data-no="' + esc(it.no) + '" data-owner="やらない"' + (busy ? " disabled" : "") + '>やらない</button>';
+  return '<article class="card' + (left === 0 ? " today" : "") + (expired ? " expired" : "") + (busy ? " busy" : "") + '">'
+    + '<div class="cardtop"><span class="no">No.' + esc(it.no || "-") + "</span></div>"
+    + '<div class="name">' + esc(it.name) + "</div>"
+    + '<div class="sub">' + esc(it.sponsor) + " ／ " + esc(it.prize) + "</div>"
+    + '<div class="row">' + dlChip
+    + '<span class="chip">締切 ' + esc(it.deadline) + "</span>"
+    + (done ? '<span class="chip done">' + esc(it.status) + "</span>" : '<span class="chip">' + esc(it.status) + "</span>")
+    + (isDaily(it) ? '<span class="chip dl-soon">毎日応募 ○</span>' : "")
+    + '<span class="chip owner">担当：' + esc(ownerText) + "</span>"
+    + '<span class="chip">' + esc(it.category) + "</span></div>"
+    + (it.user_must && it.user_must !== "なし" && !String(it.user_must).startsWith("なし（")
+        ? '<div class="detail"><b>本人がやること：</b>' + esc(it.user_must) + "</div>" : "")
+    + (url ? '<a class="go" href="' + esc(url) + '" target="_blank" rel="noopener">公式ページを開く</a>'
+           : '<div class="detail"><b>応募先：</b>' + esc(it.url || "URL未設定") + "（ボタンなし）</div>")
+    + '<div class="assign"><span class="lab">' + (skipTab ? "担当に戻す：" : "担当を決める：") + "</span>"
+    + buttons + skipBtn
+    + "</div></article>";
+}
+
+function render(){
+  const c = counts();
+  renderTabs(c);
+  const now = new Date();
+  if(LOAD_ERROR){
+    setMeta("読み込み失敗：" + LOAD_ERROR);
+  }else if(!LOADED){
+    setMeta("読み込み中…");
+  }else{
+    setMeta("全" + ITEMS.length + "件 ／ データベース ／ 更新 " + (fmtTime(LAST_UPDATED) || "—") + " ／ 表示 " + now.toLocaleDateString("ja-JP"));
+  }
+  const list = filtered();
+  document.getElementById("count").textContent = TAB_NAMES[TAB] + " " + list.length + "件表示";
+  const el = document.getElementById("list");
+  if(!LOADED){
+    el.innerHTML = '<div class="empty">' + (LOAD_ERROR ? "読み込めませんでした：" + esc(LOAD_ERROR) : "読み込み中…")
+      + '<div class="links"><button type="button" data-reload="1">もう一度読み込む</button></div></div>';
+    return;
+  }
+  if(!list.length){ el.innerHTML = emptyState(c); return; }
+  el.innerHTML = list.map(cardHtml).join("");
+}
+
+// ============ トースト ============
+let toastTimer = null;
+function toast(msg, isErr, retry){
+  const el = document.getElementById("toast");
+  el.className = "toast" + (isErr ? " err" : "");
+  el.innerHTML = esc(msg) + (isErr ? '<button type="button" data-reload="1">最新を読み込み直す</button>' : "");
+  el.style.display = "block";
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.style.display = "none"; }, isErr ? 8000 : 3200);
+}
+
+// ============ 担当の更新 ============
+async function setOwner(no, owner, fromSkipTab){
+  const key = String(no);
+  const it = ITEMS.find(x => String(x.no) === key);
+  if(!it || BUSY.has(key)) return;
+  if(owner === "やらない" && !isSkip(it)){
+    const ok = window.confirm("No." + key + "「" + (it.name || "") + "」を「やらない」にします。\n一覧から外れて「やらない」タブに移ります（あとから戻せます）。");
+    if(!ok) return;
+  }
+  const before = { owner: it.owner };
+  BUSY.add(key);
+  it.owner = owner;           // 先に画面へ反映（押した瞬間に反応させる）
   render();
+  try{
+    const out = await req("PATCH", "/" + encodeURIComponent(key), { owner, by: "サイト" }, WRITE_TIMEOUT_MS);
+    if(out.item){
+      Object.assign(it, out.item);
+      LAST_UPDATED = new Date().toISOString();
+    }
+    BUSY.delete(key);
+    render();
+    toast("No." + key + " の担当を「" + owner + "」にしました");
+  }catch(e){
+    // 失敗したら元に戻す（画面だけ変わってDBが変わっていない状態を作らない）
+    it.owner = before.owner;
+    BUSY.delete(key);
+    render();
+    const why = e.code === "timeout" ? "10秒以内に応答がありませんでした"
+      : e.code === "bad_passcode" ? "合言葉が違います（config.js）"
+      : e.code === "no_not_found" ? "データベースにそのNoが見つかりませんでした"
+      : (e.message || "通信に失敗しました");
+    toast("更新できませんでした：" + why, true);
+  }
+}
+
+// ============ イベント ============
+document.getElementById("tabs").addEventListener("click", e => {
+  const b = e.target.closest(".tab");
+  if(!b) return;
+  TAB = b.dataset.tab;
+  document.querySelectorAll("#tabs .tab").forEach(t => t.classList.toggle("on", t === b));
+  render();
+  window.scrollTo({ top: 0, behavior: "smooth" });
 });
 document.getElementById("list").addEventListener("click", e => {
-  const b = e.target.closest(".assign button"); if(!b) return;
-  setOwner(b.dataset.no, b.dataset.owner, b);
+  const goto = e.target.closest("button[data-goto]");
+  if(goto){
+    TAB = goto.dataset.goto;
+    render();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    return;
+  }
+  if(e.target.closest("button[data-reload]")){ load(false); return; }
+  const b = e.target.closest(".assign button");
+  if(!b || b.disabled) return;
+  setOwner(b.dataset.no, b.dataset.owner, TAB === "skip");
 });
+document.getElementById("toast").addEventListener("click", e => {
+  if(e.target.closest("button[data-reload]")) load(false);
+});
+document.getElementById("refresh").addEventListener("click", () => load(false));
 document.getElementById("q").addEventListener("input", render);
+
 render();
-tryLive();
+load(true);
 </script>
 </body>
 </html>

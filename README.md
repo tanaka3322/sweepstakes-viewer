@@ -1,53 +1,142 @@
-# 懸賞スマホ専用ページ（案②）sweepstakes-viewer
+# 懸賞スマホ専用ページ（DB版）sweepstakes-viewer
 
-共通スプレッドシート「懸賞_共通応募リスト」（16列）はiPhoneで見づらいため、
-裏データはシートのままに、iPhone向けカード画面で見るためのページです。
+共通スプレッドシート「懸賞_共通応募リスト」を **データベース** に移し、
+iPhone向けカード画面から見る／担当を決めるためのページです。
+Googleスプレッドシート＋Apps Script 中継は使いません（v1.0 / 2026-11-19 移行）。
 
-- 作成：きなこ（2026-11-19 初版 v0.1／v0.2 同日：未振り分けタブ＋担当ボタン＋書き込み中継／v0.3 同日：カード左上にNo表示＋タブを4分類に変更／v0.4 同日：シートに「むぎ」「きなこ」可否欄（N・O列）を追加し、可否ボタンの色連動を追加／v0.5 同日：シートに「毎日応募」欄（P列）を追加し、○連動の振り分けに変更）
-- 分担：きなこ作成 → むぎ確認 → きなこ最終確認
 - リポジトリ：https://github.com/tanaka3322/sweepstakes-viewer （public）
-- 公開URL：https://sweepstakes-viewer.vercel.app/ （Vercel。main へ push すると自動で再デプロイ）
-- データ元：スプレッドシート「懸賞_共通応募リスト」（ID: 161-pa0R3LgMKRhtNSwSsTaeIBai-0GonqvpOn8Rf00g）タブ「応募リスト」
-- 可否欄（v0.4）：シートのN列「むぎ」・O列「きなこ」に 1・2・3 のどれかを入力する（1=できる／2=たぶんできる・未検証／3=絶対にできない）。シート側は入力規則（1・2・3のみ）と条件付き書式（青・黄・赤）を設定済み
-- 毎日応募欄（v0.5）：シートのP列「毎日応募」に ○ を入力すると、その行がサイトの「毎日応募」タブに振り分けられる。シート側は入力規則（○のみ）と条件付き書式（○＝オレンジ）を設定済み。初期値として「やる（毎日応募可）」の8件（No.16・40・41・42・48・49・50・51）に○を入力済み
+- 公開URL：https://sweepstakes-viewer.vercel.app/ （main へ push すると自動で再デプロイ）
+- 保存先：Vercel Storage の **Upstash Redis**（リソース名 `sweepstakes-kv`／東京 hnd1／Free プラン）
+- API：`https://sweepstakes-viewer.vercel.app/api/sweepstakes`
+
+## しくみ
+
+```
+iPhone (public/index.html)
+    │  fetch  /api/sweepstakes   （GET=読む / PATCH=担当を変える）
+    ▼
+Vercel Serverless Function  api/sweepstakes.js
+    │  Redis REST（環境変数 KV_REST_API_URL / KV_REST_API_TOKEN）
+    ▼
+Upstash Redis
+    sweep:items … ハッシュ。フィールド=No、値=1件分のJSON
+    sweep:meta  … 最終更新時刻など
+```
+
+- 1件＝1フィールドで持つので、むぎときなこが別の案件を同時に更新しても消し合わない。
+- 画面は毎回APIから取り直す（キャッシュ無効）。「最新を読み込む」ボタンでも再取得できる。
+- スプレッドシートは**もう更新しません**。移行時点の内容を `data/seed.json`（72件）に控えてある。
+  シートは読み取り専用の控えとして残している。
+
+## API仕様（きなこ・むぎ共通）
+
+共通の約束：
+
+- 形式はJSON。読み取り（GET）は合言葉なしでOK。書き込みは合言葉が必要。
+- 合言葉は `x-sweep-passcode: <合言葉>` ヘッダー、または本文の `passcode` で渡す。
+- 合言葉の初期値は `kinako3150`（Vercel の環境変数 `SWEEP_PASSCODE` で変更可）。
+- 書き込みの `by` に「きなこ」「むぎ」などを入れると、最終更新者として `sweep:meta` に残る。
+- 応答はすべて `Cache-Control: no-store`。
+
+| メソッド | URL | 用途 | 本文の例 |
+|---|---|---|---|
+| GET | `/api/sweepstakes` | 全件取得 | — |
+| GET | `/api/sweepstakes?no=12` | 1件取得 | — |
+| GET | `/api/sweepstakes?health=1` | DB接続の確認 | — |
+| PATCH | `/api/sweepstakes?no=12` | 1件の項目を更新 | `{"passcode":"…","owner":"むぎ","by":"きなこ"}` |
+| POST | `/api/sweepstakes` | 1件追加（Noは自動採番） | `{"passcode":"…","item":{"name":"…","sponsor":"…"},"by":"きなこ"}` |
+| PUT | `/api/sweepstakes` | まとめて投入（移行・復旧） | `{"passcode":"…","items":[…],"mode":"replace"}` |
+| DELETE | `/api/sweepstakes?no=12` | 1件削除 | ヘッダーに合言葉 |
+
+### 項目（16個）
+
+`no`（キー・変更不可）、`name` キャンペーン名、`sponsor` 主催、`prize` 賞品・当選人数、
+`deadline` 締切、`decision` やるかどうか、`category` 分類、`agent_can` きなこ・むぎができること、
+`user_must` 本人がやること、`status` 応募状況、`url` 公式URL、`evidence` 根拠・確認状況、
+`owner` 担当、`mugi` むぎ可否、`kinako` きなこ可否、`daily` 毎日応募。
+
+- `owner` は `本人` / `むぎ` / `きなこ` / `やらない` / `未振り分け` のいずれか。
+- `mugi`・`kinako` は `1`（できる）/ `2`（たぶんできる・未検証）/ `3`（絶対にできない）/ 空欄。
+- `daily` は `○` か空欄。
+
+### 例（curl）
+
+```bash
+# 読む
+curl -s 'https://sweepstakes-viewer.vercel.app/api/sweepstakes' | head -c 400
+
+# 担当を「むぎ」にする
+curl -s -X PATCH 'https://sweepstakes-viewer.vercel.app/api/sweepstakes?no=12' \
+  -H 'Content-Type: application/json' \
+  -d '{"passcode":"kinako3150","owner":"むぎ","by":"きなこ"}'
+
+# 応募状況を更新する（項目は部分的に送ればOK）
+curl -s -X PATCH 'https://sweepstakes-viewer.vercel.app/api/sweepstakes?no=1' \
+  -H 'Content-Type: application/json' \
+  -d '{"passcode":"kinako3150","changes":{"status":"応募済（2026/11/20 きなこ代行）"},"by":"きなこ"}'
+
+# 1件追加する（Noは自動で振られる）
+curl -s -X POST 'https://sweepstakes-viewer.vercel.app/api/sweepstakes' \
+  -H 'Content-Type: application/json' \
+  -d '{"passcode":"kinako3150","item":{"name":"新キャンペーン","sponsor":"主催社","deadline":"2026/12/31 23:59"},"by":"きなこ"}'
+```
+
+### エラー
+
+`401 bad_passcode` / `400 bad_owner` / `400 bad_capability` / `404 no_not_found` /
+`504 db_timeout` / `500 db_not_configured` を返す。`message` に日本語の説明が入る。
 
 ## 画面
-- カード表示：左上に No／キャンペーン名／主催／賞品／締切（あと何日・今日締切は赤）／応募状況／担当／分類／本人がやること／公式URLボタン
-- タブ（v0.3・4分類、各カードはどれか1つに入る。並びは締切昇順）：
-  - 未振り分け（既定）：担当が空欄・未振り分け・未定・保留＝担当者が決まってない
-  - 振り分け済み：担当が決まっているが未応募（毎日応募のものを除く）
-  - 応募済み：担当が決まって、応募状況が「応募済…」
-  - 毎日応募：シートの「毎日応募」欄（P列）に○が付いているもの（担当の有無にかかわらず最優先で振り分け）。応募期間中（締切当日まで）ずっと表示され、締切を過ぎると通常の分類（未振り分け等）に戻る
-- 可否ボタン（v0.4）：各カードに「むぎ」「きなこ」の可否ボタンを表示。シートのN・O列の入力で色が変わる（1=青「できる」／2=黄色「たぶんできる」／3=赤「絶対にできない」／未入力=グレー）。表示専用で、入力はシート側で行う
-- 担当ボタン：各カードに「本人／むぎ／きなこ」ボタン＋「やらない」ボタン。むぎ・きなこのボタンの色はその人の可否（シートの「むぎ」「きなこ」欄：1=青 できる／2=黄 たぶんできる・未検証／3=赤 絶対にできない）。押すとシートの担当（M列）だけを更新する（「やらない」も担当欄にそのまま書く。「やらない」の案件はどのタブにも表示されない）
-  - 書き込みは中継（Apps Script Webアプリ、`apps-script/`）経由。URLは `public/config.js` の `endpoint`
-  - endpoint 未設定の間はフォールバックとしてシートの担当セルを直接開く
-- 検索：キャンペーン名・主催企業
-- データ取得：まずシートのライブ取得（gviz）を試み、読めない環境では同梱スナップショット `public/data.js` を表示。画面上部にどちらで表示中か出す。
 
-## コード共有（2人とも触れるように）
-1. GitHubに新規リポジトリ `sweepstakes-viewer` を作り、このフォルダ一式を push する（3人チャットの `tanaka3322/kinako-mugi-chat` と同じ方式）。むぎ・きなこ両方が clone / push できる状態にする。
-   - 実施済み（2026-11-19 むぎ）：`tanaka3322/sweepstakes-viewer`（public）を作成し push。個人情報・秘密情報が入っていないことを確認のうえ公開リポジトリにした。
-2. あわせて、このフォルダの zip を Google Drive フォルダ「懸賞リスト」（1IDWmBP63yKwOF2q3GNaczhq_CWN6wInY）に置く。GitHubが使えない側は zip から触れる。
-3. デプロイは Vercel でこのリポジトリを Import（設定は `vercel.json` のとおり、出力は `public/`）。公開URLを3人チャットで共有する。
+- タブは5つ：**未振り分け / 振り分け済み / 応募済み / 毎日応募 / やらない**。
+  どのタブにも件数を表示し、0件のときは「未振り分けは0件です（全件どれかの担当に振り分け済み）」と
+  件数のあるタブへのボタンを出す。
+- カード：左上 `No.○`、名前、主催／賞品、締切（今日締切は赤、あと3日以内はオレンジ、期限切れは灰色）、
+  応募状況、担当、分類、本人がやること、公式URLボタン。
+- 担当ボタン：`本人` / `むぎ` / `きなこ` ＋ `やらない`。
+  色はその人の可否（`mugi`・`kinako` 欄の 1=青 / 2=黄 / 3=赤、未入力=色なし）。
+  **いまの担当は太い黒枠**で示す（色は可否の意味なので枠で区別）。
+- 押した瞬間に画面へ反映し、DBへの書き込みが10秒でタイムアウトしたとき・失敗したときは
+  **元の担当に戻して**「更新できませんでした：理由」と「最新を読み込み直す」ボタンを出す。
+  書き込み中はそのカードの4ボタンを押せなくする（連打の二重書き込み防止）。
+- 「やらない」は**確認ダイアログ**を出してから移動。押した案件は「やらない」タブに残り、
+  そこで `本人`／`むぎ`／`きなこ` を押せば戻せる。
+- 期限切れの案件は各タブの**末尾**にまとめ、薄く表示する。
+- 検索はキャンペーン名・主催が対象。
 
-## データ更新
-シートが変わったら、スナップショットを再生成して commit する：
+## データの移行・復旧
+
 ```bash
-/opt/hatch/bin/hatch_gws_cli sheets spreadsheets values get \
-  --params '{"spreadsheetId":"161-pa0R3LgMKRhtNSwSsTaeIBai-0GonqvpOn8Rf00g","range":"応募リスト!A1:P200"}' \
-  > /tmp/sheet_values.json
-python3 tools/build_data.py /tmp/sheet_values.json
+# シート最終状態（72件）をDBへ投入（置き換え）
+BASE=https://sweepstakes-viewer.vercel.app PASS=kinako3150 ./tools/import_seed.sh
+
+# 件数・全項目が seed と一致するか検証
+BASE=https://sweepstakes-viewer.vercel.app python3 tools/verify_seed.py
 ```
-（むぎ側は、同じ16列の values JSON を用意できれば同じスクリプトで再生成できる）
+
+`data/seed.json` は2026-11-19時点のシート内容（72件・16列）そのもの。
+`MODE=merge` を付けると、seed に無いNoは残したまま投入する。
 
 ## ローカル確認
+
 ```bash
-node server.js   # → http://localhost:3211
+KV_REST_API_URL=... KV_REST_API_TOKEN=... npm start   # → http://localhost:3211
 ```
 
+## 旧構成からの変更点（v0.5.2 → v1.0）
+
+| 旧 | 新 |
+|---|---|
+| 画面が Google シートの gviz を直読み＋スナップショット `data.js` | 自サイトの `/api/sweepstakes` から取得（キャッシュ無効） |
+| 担当の書き込みは Apps Script 中継 | Serverless Function が Upstash Redis へ直接書き込み |
+| スナップショット生成 `tools/build_data.py` | 不要（DBが正）。`data/seed.json` は移行・復旧用 |
+
+`apps-script/`（中継）は役目を終えたので削除した。
+
 ## 注意
-- ページは「見る・公式URLへ飛ぶ」まで。応募の自動送信・個人情報の入力は行わない。
-- シートの列には個人情報は含まれていない（確認済み 2026-11-19）。列構成を変えるときは個人情報を追加しないこと。
-- v0.4で列は15列になった（N=むぎ可否／O=きなこ可否）。v0.5で16列になった（P=毎日応募）。それ以外の列の意味は変えていない。
+
+- ページは「見る・担当を決める・公式URLへ飛ぶ」まで。応募の自動送信・個人情報の入力は行わない。
+- 保存しているのは懸賞リストの16項目だけで、氏名・住所・電話などの個人情報は含まない。
+- 書き込みの合言葉は画面の `public/config.js` に入っている（3人だけが使う前提の簡易な門）。
+  外部に広げたくなったら Vercel の `SWEEP_PASSCODE` を変え、`config.js` ときなこ側の設定も同じ値にそろえる。
 - 作品系（分類④）は生成AI禁止のため、作句・執筆支援機能は入れない。

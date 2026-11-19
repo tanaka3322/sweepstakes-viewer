@@ -1,12 +1,10 @@
 {
-  "description": "懸賞_共通応募リストのスマホ専用ビューア（案②）",
-  "engines": {
-    "node": ">=18"
-  },
   "name": "sweepstakes-viewer",
+  "version": "1.0.0",
   "private": true,
+  "description": "懸賞_共通応募リストのスマホ専用ビューア（DB版）",
+  "engines": { "node": ">=18" },
   "scripts": {
     "start": "node server.js"
-  },
-  "version": "0.5.2"
+  }
 }
