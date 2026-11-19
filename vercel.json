@@ -1,7 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "outputDirectory": "public",
-  "functions": {
-    "api/sweepstakes.js": { "maxDuration": 20 }
-  }
+  "outputDirectory": "public"
 }
