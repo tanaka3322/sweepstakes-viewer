@@ -4,14 +4,15 @@
 // 仕様：
 // - POST JSON {passcode, no, owner} を受け、シート「応募リスト」の A列で No を探し、
 //   M列（担当）だけを owner に書き換える。他の列・行は一切触らない。
-// - owner は「本人」「むぎ」「きなこ」の3値のみ許可。それ以外はエラー。
+// - owner は「本人」「むぎ」「きなこ」「やらない」の4値のみ許可。それ以外はエラー。
+//   「やらない」は担当欄にそのまま書き込む値（応募しないと決めた案件の印）。
 // - パスコードは簡易ゲート（低リスク列のみの更新という前提）。変えるときは
 //   サイト側 public/config.js の passcode と必ず一致させること。
 
 var SPREADSHEET_ID = "161-pa0R3LgMKRhtNSwSsTaeIBai-0GonqvpOn8Rf00g";
 var SHEET_NAME = "応募リスト";
 var PASSCODE = "kinako3150";
-var ALLOWED_OWNERS = ["本人", "むぎ", "きなこ"];
+var ALLOWED_OWNERS = ["本人", "むぎ", "きなこ", "やらない"];
 var NO_COL = 1;    // A列 = No
 var OWNER_COL = 13; // M列 = 担当
 
