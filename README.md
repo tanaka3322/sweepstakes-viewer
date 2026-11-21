@@ -21,6 +21,7 @@ Vercel Serverless Function  api/items/*
 Upstash Redis
     sweep:items … ハッシュ。フィールド=No、値=1件分のJSON
     sweep:meta  … 最終更新時刻・最終更新者など
+    sweep:counter … 応募キリ番カウンター（応募した数）のJSON
 ```
 
 - 1件＝1フィールドで持つので、むぎときなこが別々の案件を同時に更新しても消し合わない。
@@ -78,11 +79,14 @@ Upstash Redis
 | DELETE | `/api/items/:no` | 削除（誤登録の取り消し用）→ `{ok:true,deleted}` |
 | GET | `/api/items?health=1` | DB接続の確認（合言葉不要。`{ok,backend,configured,reachable,itemCount}`） |
 | POST | `/api/items`（`{items:[…],mode:"replace"\|"merge"}`） | まとめて投入（移行・復旧用。人が使う想定） |
+| GET | `/api/counter` | 応募キリ番カウンター（応募した数）を取得 |
+| POST / PATCH | `/api/counter` | カウンターの加算・数値合わせ（下の「応募キリ番カウンター」参照） |
 
 ### エラーコード
 
 `bad_passcode`(401) / `bad_owner`(400) / `bad_value`(400) / `bad_no`(400) / `bad_name`(400) /
 `no_changes`(400) / `no_not_found`(404) / `duplicate`(409) / `duplicate_no`(409) /
+`bad_counter`(400) / `counter_negative`(400) / `counter_conflict`(409) /
 `db_timeout`(504) / `db_not_configured`(500) / `db_error`(502)
 
 `failed` の不正値（`○`・`△`・`2` など）も `bad_value`(400)。`mugi`・`kinako`・`pad` の可否も同じく
@@ -133,6 +137,55 @@ curl -s -H 'x-chat-passcode: kinako3150' \
   'https://sweepstakes-viewer.vercel.app/api/items?failed=1'
 ```
 
+## 応募キリ番カウンター（`/api/counter`）
+
+「応募した数」を数える独立のカウンター。懸賞リストの件数とは別に持ち、
+画面のいちばん上（`🎯 応募キリ番カウンター`）に表示する。
+
+- 保存先は `sweep:counter`（JSON）。`{count, updated_at, updated_by, note, history}` を保持する。
+  `history` は直近20件（いつ・誰が・いくつから いくつへ）。
+- 合言葉は `/api/items` と同じ `x-chat-passcode`。GET も含めて必須（401 `bad_passcode`）。
+- `count` は 0 以上の整数。加算は `delta`、数値合わせは `set` で行い、**どちらか一方だけ**を送る。
+- **まだ一度も保存が無いとき**（初回）は、GET がDB内の「応募済」件数（`status` が `応募済` で始まる件数）を
+  `count` と `initial_candidate` に入れ、`initialized:false` で返す（**GETでは書き込まない**）。
+  最初の `delta` はこの「応募済件数」を起点に加算し、そのときに保存される。
+  0から始めたい／別の数にしたいときは `set` で合わせる。
+
+### 呼び方
+
+| 送るもの | 動き |
+|---|---|
+| `{"delta":3,"by":"パッド","note":"X懸賞3件応募"}` | 3件加算（`delta` は0以外の整数。負も可だが結果が0未満なら400 `counter_negative`） |
+| `{"delta":-2,"by":"むぎ"}` | 2件減算（数え間違えの戻し） |
+| `{"set":120,"by":"わきさか"}` | 合計を120に合わせる（`set` は0以上の整数） |
+
+- 応答は GET と同じ形＋`previous`（変更前の数）と `initialized_from_items`（初回に応募済件数から始めたか）。
+- `delta`・`set` の両方指定、どちらも無し、小数、数字でない値は 400 `bad_counter`。
+- 同時更新で上書きされたときは読み直してやり直す（3回でだめなら 409 `counter_conflict`）。
+- `by` は `わきさか` / `本人` / `むぎ` / `きなこ` / `パッド` / `サイト`（画面からの操作）などを自由記入。
+  省略時はヘッダー `x-chat-by` を見る。
+
+```bash
+# 今の数を見る（初回は initialized:false・count は応募済件数）
+curl -s -H 'x-chat-passcode: kinako3150' \
+  'https://sweepstakes-viewer.vercel.app/api/counter'
+
+# +1（ワンタップ相当）
+curl -s -X POST 'https://sweepstakes-viewer.vercel.app/api/counter' \
+  -H 'Content-Type: application/json' -H 'x-chat-passcode: kinako3150' \
+  -d '{"delta":1,"by":"パッド"}'
+
+# まとめて5件（数さえ合っていればまとめてでOK）
+curl -s -X POST 'https://sweepstakes-viewer.vercel.app/api/counter' \
+  -H 'Content-Type: application/json' -H 'x-chat-passcode: kinako3150' \
+  -d '{"delta":5,"by":"むぎ","note":"X懸賞5件"}'
+
+# 合計を任意の数に合わせる（手動補正）
+curl -s -X POST 'https://sweepstakes-viewer.vercel.app/api/counter' \
+  -H 'Content-Type: application/json' -H 'x-chat-passcode: kinako3150' \
+  -d '{"set":120,"by":"わきさか"}'
+```
+
 ## 画面
 
 - タブは6つ：**未振り分け / 振り分け済み / 応募済み / 毎日応募 / × できなかった / やらない**。
@@ -159,6 +212,11 @@ curl -s -H 'x-chat-passcode: kinako3150' \
   そこで `本人`／`むぎ`／`きなこ`／`パッド` を押せば戻せる。
 - 期限切れの案件は各タブの**末尾**にまとめ、薄く表示する。
 - 検索はキャンペーン名・主催が対象。
+- **応募キリ番カウンター**：画面いちばん上に `🎯 応募キリ番カウンター ○○件`（ヘッダーにも常時表示）。
+  `＋1` でワンタップ加算、数字を入れて `＋まとめて` で一括加算、`数値を合わせる` で合計を任意の数に補正。
+  キリ番（100ごと・1000ごと・3桁以上のゾロ目＝111・777・999 など）に当たると表示が緑になり、
+  トーストで「🎉 キリ番 ○○ 達成！」と出る。リロード・タブ切替・絞り込みでも最新の数を描き直す。
+  未設定のときは「DBの応募済 ○件を表示中」と添えて、`数値を合わせる` で確定できることを示す。
 
 ## データの移行・復旧
 
@@ -189,7 +247,8 @@ npm test                                                # 擬似RedisでAPIと�
 
 `tests/run.js` は擬似Redis（`tests/fake-redis.js`）を立てて本物の `server.js` / `api/` / `lib/` を
 そのまま動かすので、Upstash の実データを汚さずに failed・pad の設定・解除・バリデーション・
-`?failed=1`・bulk・振り分け優先順位・人別フィルター（パッド含む）を確認できる。
+`?failed=1`・bulk・振り分け優先順位・人別フィルター（パッド含む）・応募キリ番カウンター
+（初期値・加算・まとめて加算・set・0未満防止・不正値400・認証・GETで書き込まないこと）を確認できる。
 
 ## 旧構成からの変更点（v0.5.2 → v1.0）
 

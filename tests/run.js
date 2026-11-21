@@ -51,6 +51,7 @@ function makeClient(base) {
   }
   return {
     get: (p) => call("GET", p),
+    call: (m, p, b) => call(m, p, b),
     getNoPass: async (p) => {
       const res = await fetch(base + p);
       const text = await res.text();
@@ -347,6 +348,147 @@ async function main() {
       assert.strictEqual(final.json.count, 72);
       assert.ok(final.json.items.every((it) => it.failed === ""));
     });
+
+    // ================= 応募キリ番カウンター =================
+    const kiri0 = await client.get("/api/counter");
+    await test("GET /api/counter は未設定ならDBの応募済件数を初期候補として返す（書き込みなし）", () => {
+      assert.strictEqual(kiri0.status, 200);
+      assert.strictEqual(kiri0.json.ok, true);
+      assert.strictEqual(kiri0.json.count, 2, "seedの応募済は2件");
+      assert.strictEqual(kiri0.json.initialized, false);
+      assert.strictEqual(kiri0.json.initial_candidate, 2);
+      assert.strictEqual(kiri0.json.updated_at, null);
+    });
+
+    const kiri0b = await client.get("/api/counter");
+    await test("GET を繰り返しても値は変わらない（読み取りは書き込まない）", () => {
+      assert.strictEqual(kiri0b.json.count, 2);
+      assert.strictEqual(kiri0b.json.initialized, false);
+    });
+
+    await test("合言葉なしの GET /api/counter は401 bad_passcode", async () => {
+      const out = await client.getNoPass("/api/counter");
+      assert.strictEqual(out.status, 401);
+      assert.strictEqual(out.json.error, "bad_passcode");
+    });
+
+    await test("合言葉なしの POST /api/counter も401（値は変わらない）", async () => {
+      const res = await fetch("http://127.0.0.1:3299/api/counter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ delta: 5 }),
+      });
+      const json = await res.json();
+      assert.strictEqual(res.status, 401);
+      assert.strictEqual(json.error, "bad_passcode");
+      const now = await client.get("/api/counter");
+      assert.strictEqual(now.json.count, 2);
+      assert.strictEqual(now.json.initialized, false);
+    });
+
+    const add1 = await client.post("/api/counter", { delta: 1, by: "パッド", note: "テスト+1" });
+    await test("POST {delta:1} で1件加算（未設定なら応募済件数から続ける）", () => {
+      assert.strictEqual(add1.status, 200);
+      assert.strictEqual(add1.json.ok, true);
+      assert.strictEqual(add1.json.previous, 2);
+      assert.strictEqual(add1.json.count, 3);
+      assert.strictEqual(add1.json.initialized, true);
+      assert.strictEqual(add1.json.initialized_from_items, true);
+      assert.strictEqual(add1.json.updated_by, "パッド");
+      assert.strictEqual(add1.json.note, "テスト+1");
+      assert.ok(add1.json.updated_at, "updated_at が無い");
+      assert.strictEqual(add1.json.history.length, 1);
+      assert.strictEqual(add1.json.history[0].delta, 1);
+      assert.strictEqual(add1.json.history[0].count, 3);
+    });
+
+    const bulkAdd = await client.post("/api/counter", { delta: 7, by: "むぎ", note: "X懸賞7件応募" });
+    await test("まとめて加算（delta:7）ができる", () => {
+      assert.strictEqual(bulkAdd.status, 200);
+      assert.strictEqual(bulkAdd.json.previous, 3);
+      assert.strictEqual(bulkAdd.json.count, 10);
+      assert.strictEqual(bulkAdd.json.updated_by, "むぎ");
+    });
+
+    const readBack = await client.get("/api/counter");
+    await test("加算後の値は GET で読み戻せる（保存されている）", () => {
+      assert.strictEqual(readBack.status, 200);
+      assert.strictEqual(readBack.json.count, 10);
+      assert.strictEqual(readBack.json.initialized, true);
+      assert.strictEqual(readBack.json.updated_by, "むぎ");
+      assert.strictEqual(readBack.json.history.length, 2);
+      assert.strictEqual(readBack.json.history[1].note, "X懸賞7件応募");
+    });
+
+    const patched = await client.call("PATCH", "/api/counter", { delta: -2, by: "サイト" });
+    await test("PATCH でも同じように加算できる（負のdeltaで減算）", () => {
+      assert.strictEqual(patched.status, 200);
+      assert.strictEqual(patched.json.previous, 10);
+      assert.strictEqual(patched.json.count, 8);
+      assert.strictEqual(patched.json.updated_by, "サイト");
+    });
+
+    const setTo = await client.post("/api/counter", { set: 120, by: "わきさか" });
+    await test("POST {set:120} で任意の整数に合わせられる", () => {
+      assert.strictEqual(setTo.status, 200);
+      assert.strictEqual(setTo.json.previous, 8);
+      assert.strictEqual(setTo.json.count, 120);
+      assert.strictEqual(setTo.json.history[setTo.json.history.length - 1].set, 120);
+    });
+
+    const belowZero = await client.post("/api/counter", { delta: -121 });
+    await test("0未満になる加算は 400 counter_negative で値は変わらない", async () => {
+      assert.strictEqual(belowZero.status, 400);
+      assert.strictEqual(belowZero.json.error, "counter_negative");
+      const now = await client.get("/api/counter");
+      assert.strictEqual(now.json.count, 120);
+    });
+
+    await test("不正値は 400 bad_counter（delta 0・小数・文字列／set 負数・小数／両方指定・どちらも無し）", async () => {
+      const bads = [
+        { delta: 0 }, { delta: 1.5 }, { delta: "abc" }, { delta: true },
+        { set: -1 }, { set: 2.5 }, { set: "x" },
+        { delta: 1, set: 5 }, {},
+      ];
+      for (const bad of bads) {
+        const out = await client.post("/api/counter", bad);
+        assert.strictEqual(out.status, 400, JSON.stringify(bad) + " が通ってしまった");
+        assert.strictEqual(out.json.error, "bad_counter");
+      }
+      const now = await client.get("/api/counter");
+      assert.strictEqual(now.json.count, 120);
+    });
+
+    const zeroSet = await client.post("/api/counter", { set: 0, by: "わきさか" });
+    await test("set:0 は受け付け、そこから負の加算は400で止まる", async () => {
+      assert.strictEqual(zeroSet.status, 200);
+      assert.strictEqual(zeroSet.json.count, 0);
+      const neg = await client.post("/api/counter", { delta: -1 });
+      assert.strictEqual(neg.status, 400);
+      assert.strictEqual(neg.json.error, "counter_negative");
+      const now = await client.get("/api/counter");
+      assert.strictEqual(now.json.count, 0);
+    });
+
+    await test("カウンターは懸賞データの追加・更新では変わらない", async () => {
+      const made = await client.post("/api/items", {
+        item: { name: "テスト用キャンペーン(カウンター)", sponsor: "テスト", deadline: "2026/12/31 23:59" },
+        by: "test",
+      });
+      assert.strictEqual(made.status, 201);
+      await client.patch(made.json.item.no, { status: "応募済（テスト）", by: "test" });
+      const now = await client.get("/api/counter");
+      assert.strictEqual(now.json.count, 0, "items の変更でカウンターが動いた");
+      await client.del(made.json.item.no);
+      const restoredItems = await client.get("/api/items?include_hidden=1");
+      assert.strictEqual(restoredItems.json.count, 72);
+    });
+
+    await test("GET, POST, PATCH 以外は 405", async () => {
+      const out = await client.call("DELETE", "/api/counter", {});
+      assert.strictEqual(out.status, 405);
+      assert.strictEqual(out.json.error, "method_not_allowed");
+    });
   } finally {
     child.kill();
     await redis.close();
@@ -444,6 +586,45 @@ async function main() {
     assert.ok(html.includes('const OWNER_CHOICES = ["本人", "むぎ", "きなこ", "パッド"];'), "OWNER_CHOICES にパッドが無い");
     assert.ok(html.includes('if(who === "パッド") return String(it.pad ?? "").trim();'), "capVal が pad を見ていない");
     assert.ok(html.includes("むぎ・きなこ・パッド欄"), "凡例がパッドを説明していない");
+  });
+
+  // ================= キリ番カウンター（画面） =================
+  await test("キリ番判定: 100ごと・1000ごと・ゾロ目だけがキリ番", () => {
+    for (const n of [100, 200, 1000, 2000, 777, 111, 999, 2222]) assert.strictEqual(logic.isKiri(n), true, n + " がキリ番でない");
+    for (const n of [0, 1, 59, 99, 101, 110, 1001, 1234]) assert.strictEqual(logic.isKiri(n), false, n + " がキリ番になっている");
+  });
+
+  await test("次のキリ番と残り件数", () => {
+    assert.strictEqual(logic.nextKiri(59), 100);
+    assert.strictEqual(logic.kiriLeft(59), 41);
+    assert.strictEqual(logic.nextKiri(100), 111);
+    assert.strictEqual(logic.kiriLeft(100), 11);
+    assert.strictEqual(logic.nextKiri(995), 999);
+    assert.strictEqual(logic.nextKiri(999), 1000);
+    assert.strictEqual(logic.nextKiri(0), 100);
+  });
+
+  await test("画面: キリ番カウンターの表示・+1・まとめて加算・数値を合わせるボタンがある", () => {
+    assert.ok(html.includes('id="kiri"'), "カウンター欄が無い");
+    assert.ok(html.includes("応募キリ番カウンター"), "見出しが無い");
+    assert.ok(html.includes('id="kiriCount"'), "合計数の表示が無い");
+    assert.ok(html.includes('id="kiriSub"'), "キリ番までの残り表示が無い");
+    assert.ok(html.includes('id="kiriAdd1"'), "+1 ボタンが無い");
+    assert.ok(html.includes('id="kiriN"'), "まとめて入力欄が無い");
+    assert.ok(html.includes('id="kiriAddN"'), "まとめて加算ボタンが無い");
+    assert.ok(html.includes('id="kiriSetBtn"'), "数値を合わせるボタンが無い");
+    assert.ok(html.includes('id="kiriChipCount"'), "ヘッダーの常時表示が無い");
+  });
+
+  await test("画面: カウンターは /api/counter から読み、フィルター切替でも描き直す", () => {
+    const conf = fs.readFileSync(path.join(ROOT, "public", "config.js"), "utf8");
+    assert.ok(conf.includes('counterApiBase: "/api/counter"'), "config.js に counterApiBase が無い");
+    assert.ok(html.includes('const COUNTER_API = CONF.counterApiBase || "/api/counter";'), "画面が COUNTER_API を使っていない");
+    assert.ok(html.includes("loadCounter(true);"), "読み込み時にカウンターを取りに行っていない");
+    assert.ok(html.includes("render();\n  renderCounter();"), "タブ切替でカウンターを描き直していない");
+    assert.ok(html.includes('{ delta: 1, by: "サイト" }'), "+1 の送信内容が違う");
+    assert.ok(html.includes('{ delta: n, by: "サイト" }'), "まとめて加算の送信内容が違う");
+    assert.ok(html.includes('{ set: Number(v), by: "サイト" }'), "数値を合わせる送信内容が違う");
   });
 
   console.log("");

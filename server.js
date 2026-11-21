@@ -13,6 +13,7 @@ const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; ch
 const itemsIndex = require("./api/items/index");
 const itemsOne = require("./api/items/[no]");
 const itemsBulk = require("./api/items/bulk");
+const counterApi = require("./api/counter");
 
 // Vercel のファイル配置に合わせた簡易ルーティング
 //   /api/items        → api/items/index.js
@@ -21,6 +22,7 @@ const itemsBulk = require("./api/items/bulk");
 function route(pathname) {
   if (pathname === "/api/items" || pathname === "/api/items/") return { handler: itemsIndex, params: {} };
   if (pathname === "/api/items/bulk") return { handler: itemsBulk, params: {} };
+  if (pathname === "/api/counter" || pathname === "/api/counter/") return { handler: counterApi, params: {} };
   const m = pathname.match(/^\/api\/items\/([^/]+)\/?$/);
   if (m) return { handler: itemsOne, params: { no: decodeURIComponent(m[1]) } };
   return null;

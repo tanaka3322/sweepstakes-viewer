@@ -19,6 +19,28 @@
             border-radius:999px; padding:7px 12px; font-size:13px; min-height:36px; }
   .refresh:active{ opacity:.7; }
   .meta{ font-size:12px; color:var(--muted); margin-top:3px; }
+  .kiri-chip{ flex:0 0 auto; display:inline-flex; align-items:center; gap:3px; font-size:13px; font-weight:700;
+              color:#fff; background:var(--accent); border-radius:999px; padding:6px 10px; white-space:nowrap; }
+  .kiri-chip b{ font-size:15px; }
+  .kiri{ background:var(--card); border:1px solid var(--line); border-left:5px solid var(--accent);
+         border-radius:14px; padding:10px 12px; margin:0 0 10px; }
+  .kiri.hit{ border-color:var(--ok); border-left-color:var(--ok); background:#f1f8ef; }
+  .kiri-top{ display:flex; align-items:baseline; gap:8px; }
+  .kiri-title{ flex:1; font-size:13px; font-weight:700; color:var(--muted); }
+  .kiri-count{ font-size:14px; }
+  .kiri-count b{ font-size:26px; font-weight:800; color:var(--accent); letter-spacing:-.02em; }
+  .kiri.hit .kiri-count b{ color:var(--ok); }
+  .kiri-unit{ font-size:12px; color:var(--muted); margin-left:2px; }
+  .kiri-sub{ font-size:12px; color:var(--muted); margin-top:2px; line-height:1.5; }
+  .kiri-ops{ display:flex; align-items:center; gap:6px; margin-top:8px; flex-wrap:wrap; }
+  .kiri-ops button{ border:1px solid var(--line); background:var(--card); color:var(--ink);
+        border-radius:999px; padding:8px 13px; font-size:14px; min-height:38px; font-weight:700; }
+  .kiri-ops button.plus{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .kiri-ops button.set{ font-weight:400; color:var(--muted); }
+  .kiri-ops input{ width:104px; font-size:16px; padding:8px 10px; border:1px solid var(--line);
+        border-radius:10px; background:var(--bg); min-height:38px; }
+  .kiri-ops button:active{ opacity:.75; }
+  .kiri-ops button:disabled{ opacity:.45; }
   .tabs{ display:flex; gap:6px; overflow-x:auto; padding:8px 0 4px; -webkit-overflow-scrolling:touch; }
   .tab{ flex:0 0 auto; border:1px solid var(--line); background:var(--card); color:var(--ink);
         border-radius:999px; padding:8px 12px; font-size:14px; min-height:40px; white-space:nowrap; }
@@ -97,6 +119,7 @@
 <header>
   <div class="headrow">
     <h1>懸賞リスト</h1>
+    <span class="kiri-chip" id="kiriChip" title="応募キリ番カウンター">🎯 <b id="kiriChipCount">—</b>件</span>
     <button class="refresh" id="refresh" type="button">最新を読み込む</button>
   </div>
   <div class="meta" id="meta">読み込み中…</div>
@@ -121,6 +144,19 @@
   <div class="legend">「やらない」は確認のうえ「やらない」タブへ移ります。そこでもう一度担当を押せば戻せます。／「× できなかった」は応募しようとしてできなかった案件です（担当はそのまま、「×を解除」で戻せます）。</div>
 </header>
 <main>
+  <section class="kiri" id="kiri">
+    <div class="kiri-top">
+      <span class="kiri-title">🎯 応募キリ番カウンター</span>
+      <span class="kiri-count"><b id="kiriCount">—</b><span class="kiri-unit">件</span></span>
+    </div>
+    <div class="kiri-sub" id="kiriSub">読み込み中…</div>
+    <div class="kiri-ops">
+      <button type="button" class="plus" id="kiriAdd1" data-counter-add="1">＋1</button>
+      <input type="number" id="kiriN" min="1" step="1" inputmode="numeric" placeholder="まとめて＋" aria-label="まとめて加算する数">
+      <button type="button" class="plus" id="kiriAddN" data-counter-bulk="1">＋まとめて</button>
+      <button type="button" class="set" id="kiriSetBtn" data-counter-set="1">数値を合わせる</button>
+    </div>
+  </section>
   <div class="count" id="count"></div>
   <div id="list"></div>
 </main>
@@ -134,6 +170,7 @@
 // ============ 設定 ============
 const CONF = window.SWEEP_CONFIG || {};
 const API = CONF.apiBase || "/api/items";
+const COUNTER_API = CONF.counterApiBase || "/api/counter";
 const PASSCODE = CONF.passcode || "";
 const WRITE_TIMEOUT_MS = 10000;
 
@@ -163,6 +200,9 @@ let OWNER_FILTER = "全員";   // 振り分け済み・×タブの人別フィ�
 let LOADED = false;
 let LAST_UPDATED = null;
 let LOAD_ERROR = "";
+let COUNTER = null;          // /api/counter の応答（count, initialized, updated_at, updated_by …）
+let COUNTER_ERROR = "";
+let COUNTER_BUSY = false;
 const BUSY = new Set();       // 書き込み中のNo
 const TAB_NAMES = LOGIC.TAB_NAMES;
 const OWNER_CHOICES = ["本人", "むぎ", "きなこ", "パッド"];
@@ -185,7 +225,7 @@ function capVal(it, who){
 }
 
 // ============ 通信 ============
-async function req(method, path, body, timeoutMs){
+async function reqAt(base, method, path, body, timeoutMs){
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), timeoutMs || WRITE_TIMEOUT_MS);
   try{
@@ -195,7 +235,7 @@ async function req(method, path, body, timeoutMs){
       opt.headers["Content-Type"] = "application/json";
       opt.body = JSON.stringify(body);
     }
-    const res = await fetch(API + (path || ""), opt);
+    const res = await fetch(base + (path || ""), opt);
     let json = null;
     try{ json = await res.json(); }catch(e){ json = null; }
     if(!res.ok || !json || json.ok === false){
@@ -210,6 +250,7 @@ async function req(method, path, body, timeoutMs){
     throw e;
   }finally{ clearTimeout(timer); }
 }
+function req(method, path, body, timeoutMs){ return reqAt(API, method, path, body, timeoutMs); }
 
 async function load(quiet){
   if(!quiet) setMeta("読み込み中…");
@@ -220,13 +261,119 @@ async function load(quiet){
     LOAD_ERROR = "";
     LOADED = true;
     render();
+    loadCounter(true);
     if(!quiet) toast("最新の内容にしました（" + ITEMS.length + "件）");
   }catch(e){
     LOAD_ERROR = e.code === "timeout" ? "時間内に応答がありませんでした" : (e.message || "読み込みに失敗しました");
     LOADED = ITEMS.length > 0;
     render();
+    loadCounter(true);
     if(!quiet) toast("読み込みに失敗しました：" + LOAD_ERROR, true);
   }
+}
+
+// ============ キリ番カウンター ============
+async function loadCounter(quiet){
+  try{
+    const out = await reqAt(COUNTER_API, "GET", "?t=" + Date.now(), null, 12000);
+    COUNTER = out;
+    COUNTER_ERROR = "";
+  }catch(e){
+    COUNTER_ERROR = e.code === "timeout" ? "時間内に応答がありませんでした" : (e.message || "読み込みに失敗しました");
+    if(!quiet) toast("カウンターを読み込めませんでした：" + COUNTER_ERROR, true);
+  }
+  renderCounter();
+}
+
+function counterButtons(){
+  return ["kiriAdd1", "kiriAddN", "kiriSetBtn"].map(id => document.getElementById(id)).filter(Boolean);
+}
+
+function renderCounter(){
+  const chip = document.getElementById("kiriChipCount");
+  const big = document.getElementById("kiriCount");
+  const sub = document.getElementById("kiriSub");
+  const card = document.getElementById("kiri");
+  if(!big || !sub || !chip || !card) return;
+  counterButtons().forEach(b => { b.disabled = COUNTER_BUSY || !COUNTER; });
+  if(!COUNTER){
+    chip.textContent = "—";
+    big.textContent = "—";
+    sub.textContent = COUNTER_ERROR ? "読み込み失敗：" + COUNTER_ERROR : "読み込み中…";
+    card.classList.remove("hit");
+    return;
+  }
+  const n = Math.max(0, Number(COUNTER.count) || 0);
+  chip.textContent = String(n);
+  big.textContent = String(n);
+  card.classList.toggle("hit", LOGIC.isKiri(n));
+  const parts = [];
+  if(LOGIC.isKiri(n)) parts.push("🎉 キリ番 " + n + " 達成！次は " + LOGIC.nextKiri(n) + " 件");
+  else parts.push("次のキリ番 " + LOGIC.nextKiri(n) + " まであと " + LOGIC.kiriLeft(n) + " 件");
+  if(!COUNTER.initialized) parts.push("未設定（DBの応募済 " + n + " 件を表示中。「数値を合わせる」で確定）");
+  const when = fmtTime(COUNTER.updated_at);
+  if(when) parts.push("更新 " + when + (COUNTER.updated_by ? "（" + COUNTER.updated_by + "）" : ""));
+  sub.textContent = parts.join(" ／ ");
+  if(COUNTER_ERROR) sub.textContent += " ／ 読み込み失敗：" + COUNTER_ERROR;
+}
+
+function counterMoved(out, prefix){
+  const msg = (prefix || "") + "合計 " + out.count + " 件です";
+  return LOGIC.isKiri(out.count) ? msg + "　🎉 キリ番 " + out.count + " 達成！" : msg;
+}
+
+async function counterOp(body, okText){
+  if(COUNTER_BUSY) return;
+  COUNTER_BUSY = true;
+  renderCounter();
+  try{
+    const out = await reqAt(COUNTER_API, "POST", "", body, WRITE_TIMEOUT_MS);
+    COUNTER = out;
+    COUNTER_ERROR = "";
+    COUNTER_BUSY = false;
+    renderCounter();
+    toast(counterMoved(out, okText));
+  }catch(e){
+    COUNTER_BUSY = false;
+    renderCounter();
+    const why = e.code === "bad_passcode" ? "合言葉が違います（config.js）"
+      : e.code === "bad_counter" ? "数字が正しくありません"
+      : e.code === "counter_negative" ? "合計が0未満になります"
+      : whyText(e);
+    toast("カウンターを更新できませんでした：" + why, true);
+  }
+}
+
+function addOnce(){
+  if(COUNTER_BUSY || !COUNTER) return;
+  counterOp({ delta: 1, by: "サイト" }, "＋1 しました。");
+}
+
+function addBulk(){
+  if(COUNTER_BUSY || !COUNTER) return;
+  const el = document.getElementById("kiriN");
+  const raw = String(el.value || "").trim();
+  if(!/^\d+$/.test(raw) || Number(raw) < 1){
+    toast("まとめて加算する数は1以上の整数で入れてください", true);
+    el.focus();
+    return;
+  }
+  const n = Number(raw);
+  el.value = "";
+  counterOp({ delta: n, by: "サイト" }, n + "件まとめて＋しました。");
+}
+
+function setCounter(){
+  if(COUNTER_BUSY || !COUNTER) return;
+  const now = String(COUNTER.count);
+  const raw = window.prompt("カウンターの合計をいくつに合わせますか？\n（今は " + now + " 件）", now);
+  if(raw === null) return;
+  const v = String(raw).trim();
+  if(!/^\d+$/.test(v)){ toast("0以上の整数を入れてください", true); return; }
+  if(v === now){ toast("合計は「" + now + " 件」のままです"); return; }
+  const ok = window.confirm("合計を " + now + " 件 → " + Number(v) + " 件に合わせます。");
+  if(!ok) return;
+  counterOp({ set: Number(v), by: "サイト" }, "数値を合わせました。");
 }
 
 function setMeta(text){
@@ -340,6 +487,7 @@ function render(){
   const c = counts();
   renderTabs(c);
   renderFilter();
+  renderCounter();
   const now = new Date();
   if(LOAD_ERROR){
     setMeta("読み込み失敗：" + LOAD_ERROR);
@@ -450,6 +598,7 @@ document.getElementById("tabs").addEventListener("click", e => {
   OWNER_FILTER = "全員";
   document.querySelectorAll("#tabs .tab").forEach(t => t.classList.toggle("on", t === b));
   render();
+  renderCounter();
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
 document.getElementById("filter").addEventListener("click", e => {
@@ -480,6 +629,14 @@ document.getElementById("toast").addEventListener("click", e => {
 });
 document.getElementById("refresh").addEventListener("click", () => load(false));
 document.getElementById("q").addEventListener("input", render);
+document.getElementById("kiri").addEventListener("click", e => {
+  if(e.target.closest("#kiriAdd1")) { addOnce(); return; }
+  if(e.target.closest("#kiriAddN")) { addBulk(); return; }
+  if(e.target.closest("#kiriSetBtn")) { setCounter(); return; }
+});
+document.getElementById("kiriN").addEventListener("keydown", e => {
+  if(e.key === "Enter"){ e.preventDefault(); addBulk(); }
+});
 
 render();
 load(true);

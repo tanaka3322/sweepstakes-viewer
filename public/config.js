@@ -4,5 +4,6 @@
 //           きなこ側の設定を同じ値にそろえること（未設定なら kinako3150）。
 window.SWEEP_CONFIG = {
   apiBase: "/api/items",
+  counterApiBase: "/api/counter",
   passcode: "kinako3150"
 };

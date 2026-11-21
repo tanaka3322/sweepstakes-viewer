@@ -55,6 +55,32 @@
     return "assigned";
   }
 
+  // キリ番（応募数の区切り）。100ごと・1000ごと・3桁以上のゾロ目（111・777・2222 など）。
+  function isKiri(n) {
+    var v = Number(n);
+    if (!Number.isInteger(v) || v <= 0) return false;
+    if (v % 1000 === 0) return true;
+    if (v >= 100 && v % 100 === 0) return true;
+    if (v >= 100 && /^(\d)\1+$/.test(String(v))) return true;
+    return false;
+  }
+
+  // 現在値より大きい直近のキリ番（今がキリ番なら次へ進める）
+  function nextKiri(n) {
+    var v = Number(n);
+    if (!Number.isFinite(v)) v = 0;
+    for (var i = 1; i <= 1000; i += 1) {
+      if (isKiri(v + i)) return v + i;
+    }
+    return v;
+  }
+
+  // 画面表示用：キリ番までの残り件数
+  function kiriLeft(n) {
+    var v = Number(n) || 0;
+    return Math.max(0, nextKiri(v) - v);
+  }
+
   // 人別フィルター（振り分け済み・×タブ用）。「全員」はそのまま返す。
   function filterByOwner(list, who) {
     if (!who || who === "全員") return list.slice();
@@ -96,6 +122,9 @@
     isFailed: isFailed,
     dailyActive: dailyActive,
     tabOf: tabOf,
+    isKiri: isKiri,
+    nextKiri: nextKiri,
+    kiriLeft: kiriLeft,
     filterByOwner: filterByOwner,
     decorate: decorate,
     sortForList: sortForList,
