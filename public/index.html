@@ -19,28 +19,40 @@
             border-radius:999px; padding:7px 12px; font-size:13px; min-height:36px; }
   .refresh:active{ opacity:.7; }
   .meta{ font-size:12px; color:var(--muted); margin-top:3px; }
-  .kiri-chip{ flex:0 0 auto; display:inline-flex; align-items:center; gap:3px; font-size:13px; font-weight:700;
-              color:#fff; background:var(--accent); border-radius:999px; padding:6px 10px; white-space:nowrap; }
-  .kiri-chip b{ font-size:15px; }
-  .kiri{ background:var(--card); border:1px solid var(--line); border-left:5px solid var(--accent);
-         border-radius:14px; padding:10px 12px; margin:0 0 10px; }
-  .kiri.hit{ border-color:var(--ok); border-left-color:var(--ok); background:#f1f8ef; }
-  .kiri-top{ display:flex; align-items:baseline; gap:8px; }
-  .kiri-title{ flex:1; font-size:13px; font-weight:700; color:var(--muted); }
-  .kiri-count{ font-size:14px; }
-  .kiri-count b{ font-size:26px; font-weight:800; color:var(--accent); letter-spacing:-.02em; }
-  .kiri.hit .kiri-count b{ color:var(--ok); }
-  .kiri-unit{ font-size:12px; color:var(--muted); margin-left:2px; }
-  .kiri-sub{ font-size:12px; color:var(--muted); margin-top:2px; line-height:1.5; }
-  .kiri-ops{ display:flex; align-items:center; gap:6px; margin-top:8px; flex-wrap:wrap; }
-  .kiri-ops button{ border:1px solid var(--line); background:var(--card); color:var(--ink);
-        border-radius:999px; padding:8px 13px; font-size:14px; min-height:38px; font-weight:700; }
-  .kiri-ops button.plus{ background:var(--accent); border-color:var(--accent); color:#fff; }
-  .kiri-ops button.set{ font-weight:400; color:var(--muted); }
-  .kiri-ops input{ width:104px; font-size:16px; padding:8px 10px; border:1px solid var(--line);
-        border-radius:10px; background:var(--bg); min-height:38px; }
-  .kiri-ops button:active{ opacity:.75; }
-  .kiri-ops button:disabled{ opacity:.45; }
+  /* ===== 応募キリ番カウンター（7セグ風・表示専用） =====
+     懐かしいキリ番カウンターの見た目：銀〜水色のメタリック枠＋黒い液晶＋蛍光緑の7セグ。 */
+  .kiri-hero{ background:linear-gradient(180deg,#f2f6fa 0%,#dde6ee 55%,#cfdae5 100%);
+              border-bottom:1px solid #b9c7d4; padding:9px 10px 11px; text-align:center; }
+  .kiri-eyebrow{ font-size:11.5px; font-weight:800; letter-spacing:.12em; color:#4b5d6e; }
+  .kiri-frame{ display:inline-block; max-width:100%; margin-top:6px; padding:8px 10px; border-radius:13px;
+               border:1px solid #728aa0;
+               background:linear-gradient(158deg,#ffffff 0%,#dbe6ef 22%,#a8bccd 48%,#7f97ac 62%,#e6eef6 88%,#c3d3e1 100%);
+               box-shadow:0 3px 0 #7c93a8, 0 7px 16px rgba(26,47,68,.28), inset 0 1px 0 #fff, inset 0 -1px 0 rgba(0,0,0,.15); }
+  .kiri-lcd{ position:relative; overflow:hidden; border-radius:7px; padding:9px 8px 7px;
+             border:1px solid #1d3346;
+             background:radial-gradient(120% 140% at 50% 0%, #0b1710 0%, #050b08 60%, #020503 100%);
+             box-shadow:inset 0 2px 10px #000, inset 0 0 22px rgba(0,255,70,.08); }
+  .kiri-lcd::after{ content:""; position:absolute; inset:0; pointer-events:none; border-radius:7px;
+             background:linear-gradient(115deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,.04) 26%, rgba(255,255,255,0) 46%); }
+  .kiri-seg{ display:flex; align-items:center; justify-content:center; gap:clamp(3px,1.4vw,9px); }
+  .kiri-seg svg{ display:block; height:clamp(46px,18vw,92px); width:auto; transform:skewX(-5deg); }
+  .kiri-seg .off{ fill:#0c2814; }
+  .kiri-seg .on{ fill:#19ff4b;
+             filter:drop-shadow(0 0 4px rgba(25,255,75,.85)) drop-shadow(0 0 10px rgba(25,255,75,.35)); }
+  .kiri-seg.loading .on{ opacity:.22; }
+  .kiri-lead{ margin:8px 0 0; font-size:14px; font-weight:700; color:#243342; line-height:1.6; }
+  .kiri-num{ display:inline-block; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:.08em;
+             font-size:13px; background:#0a1710; color:#19ff4b; border-radius:6px; padding:1px 7px;
+             box-shadow:inset 0 0 6px rgba(0,255,70,.25); }
+  .kiri-sub{ margin:4px 0 0; font-size:12px; color:#3f5162; line-height:1.5; }
+  .kiri-note{ margin:3px 0 0; font-size:11px; color:#6b7c8c; line-height:1.5; }
+  .kiri-hero.hit .kiri-sub{ color:#1b6b2a; font-weight:700; }
+  /* ヘッダーの常時表示は液晶と同じ色味のチップにそろえる */
+  .kiri-chip{ flex:0 0 auto; display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:700;
+              color:#19ff4b; background:#0a1710; border:1px solid #1d3346; border-radius:8px; padding:5px 8px;
+              white-space:nowrap; font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+              box-shadow:inset 0 0 8px rgba(0,255,70,.18); }
+  .kiri-chip b{ font-size:14px; letter-spacing:.06em; }
   .tabs{ display:flex; gap:6px; overflow-x:auto; padding:8px 0 4px; -webkit-overflow-scrolling:touch; }
   .tab{ flex:0 0 auto; border:1px solid var(--line); background:var(--card); color:var(--ink);
         border-radius:999px; padding:8px 12px; font-size:14px; min-height:40px; white-space:nowrap; }
@@ -116,6 +128,18 @@
 </style>
 </head>
 <body>
+<!-- 応募キリ番カウンター：ページの1番上。表示専用で、数字はAPI（/api/counter）から読むだけ。 -->
+<section class="kiri-hero" id="kiri">
+  <div class="kiri-eyebrow">🎯 応募キリ番カウンター</div>
+  <div class="kiri-frame">
+    <div class="kiri-lcd">
+      <div class="kiri-seg loading" id="kiriSeg" role="img" aria-label="累計応募数の7セグ表示"></div>
+    </div>
+  </div>
+  <p class="kiri-lead">累計応募数は <span class="kiri-num" id="kiriPlain">------</span> 件です！</p>
+  <p class="kiri-sub" id="kiriSub">読み込み中…</p>
+  <p class="kiri-note" id="kiriNote"></p>
+</section>
 <header>
   <div class="headrow">
     <h1>懸賞リスト</h1>
@@ -144,19 +168,6 @@
   <div class="legend">「やらない」は確認のうえ「やらない」タブへ移ります。そこでもう一度担当を押せば戻せます。／「× できなかった」は応募しようとしてできなかった案件です（担当はそのまま、「×を解除」で戻せます）。</div>
 </header>
 <main>
-  <section class="kiri" id="kiri">
-    <div class="kiri-top">
-      <span class="kiri-title">🎯 応募キリ番カウンター</span>
-      <span class="kiri-count"><b id="kiriCount">—</b><span class="kiri-unit">件</span></span>
-    </div>
-    <div class="kiri-sub" id="kiriSub">読み込み中…</div>
-    <div class="kiri-ops">
-      <button type="button" class="plus" id="kiriAdd1" data-counter-add="1">＋1</button>
-      <input type="number" id="kiriN" min="1" step="1" inputmode="numeric" placeholder="まとめて＋" aria-label="まとめて加算する数">
-      <button type="button" class="plus" id="kiriAddN" data-counter-bulk="1">＋まとめて</button>
-      <button type="button" class="set" id="kiriSetBtn" data-counter-set="1">数値を合わせる</button>
-    </div>
-  </section>
   <div class="count" id="count"></div>
   <div id="list"></div>
 </main>
@@ -202,7 +213,6 @@ let LAST_UPDATED = null;
 let LOAD_ERROR = "";
 let COUNTER = null;          // /api/counter の応答（count, initialized, updated_at, updated_by …）
 let COUNTER_ERROR = "";
-let COUNTER_BUSY = false;
 const BUSY = new Set();       // 書き込み中のNo
 const TAB_NAMES = LOGIC.TAB_NAMES;
 const OWNER_CHOICES = ["本人", "むぎ", "きなこ", "パッド"];
@@ -285,95 +295,80 @@ async function loadCounter(quiet){
   renderCounter();
 }
 
-function counterButtons(){
-  return ["kiriAdd1", "kiriAddN", "kiriSetBtn"].map(id => document.getElementById(id)).filter(Boolean);
+// ===== 7セグ表示（表示専用） =====
+// 桁は SVG で描く。viewBox 100×180 の中に a〜g のセグメントを置き、
+// 点灯（.on）を蛍光緑・消灯（.off）をうっすら暗い緑にして LED らしく見せる。
+const SEG_GEO = (function(){
+  const T = 14;            // セグメントの太さ
+  const B = T * 0.5;       // 端の面取り（45度）
+  const h = T / 2;
+  function hseg(y){        // 横棒（桁の幅いっぱい x=0〜100、y は中心）
+    return "M0," + y + " L" + B + "," + (y - h) + " L" + (100 - B) + "," + (y - h)
+      + " L100," + y + " L" + (100 - B) + "," + (y + h) + " L" + B + "," + (y + h) + " Z";
+  }
+  function vseg(x, y0, y1){ // 縦棒（x は中心、y0〜y1）
+    return "M" + x + "," + y0 + " L" + (x + h) + "," + (y0 + B) + " L" + (x + h) + "," + (y1 - B)
+      + " L" + x + "," + y1 + " L" + (x - h) + "," + (y1 - B) + " L" + (x - h) + "," + (y0 + B) + " Z";
+  }
+  return {
+    a: hseg(7), g: hseg(90), d: hseg(173),
+    f: vseg(7, 14, 83), b: vseg(93, 14, 83),
+    e: vseg(7, 97, 166), c: vseg(93, 97, 166),
+  };
+})();
+
+function digitSvg(ch){
+  const lit = LOGIC.sevenSeg(ch);
+  let out = '<svg viewBox="0 0 100 180" aria-hidden="true">';
+  for(const k of "abcdefg"){
+    out += '<path class="' + (lit.indexOf(k) >= 0 ? "on" : "off") + '" d="' + SEG_GEO[k] + '"></path>';
+  }
+  return out + "</svg>";
+}
+
+function segHtml(text){
+  return String(text).split("").map(digitSvg).join("");
 }
 
 function renderCounter(){
-  const chip = document.getElementById("kiriChipCount");
-  const big = document.getElementById("kiriCount");
+  const seg = document.getElementById("kiriSeg");
+  const plain = document.getElementById("kiriPlain");
   const sub = document.getElementById("kiriSub");
-  const card = document.getElementById("kiri");
-  if(!big || !sub || !chip || !card) return;
-  counterButtons().forEach(b => { b.disabled = COUNTER_BUSY || !COUNTER; });
+  const note = document.getElementById("kiriNote");
+  const hero = document.getElementById("kiri");
+  const chip = document.getElementById("kiriChipCount");
+  if(!seg || !plain || !sub || !note || !hero || !chip) return;
+
   if(!COUNTER){
+    seg.innerHTML = segHtml("------");
+    seg.classList.add("loading");
+    seg.setAttribute("aria-label", COUNTER_ERROR ? "累計応募数（読み込み失敗）" : "累計応募数（読み込み中）");
+    plain.textContent = "------";
     chip.textContent = "—";
-    big.textContent = "—";
     sub.textContent = COUNTER_ERROR ? "読み込み失敗：" + COUNTER_ERROR : "読み込み中…";
-    card.classList.remove("hit");
+    note.textContent = "";
+    hero.classList.remove("hit");
     return;
   }
+
   const n = Math.max(0, Number(COUNTER.count) || 0);
-  chip.textContent = String(n);
-  big.textContent = String(n);
-  card.classList.toggle("hit", LOGIC.isKiri(n));
-  const parts = [];
-  if(LOGIC.isKiri(n)) parts.push("🎉 キリ番 " + n + " 達成！次は " + LOGIC.nextKiri(n) + " 件");
-  else parts.push("次のキリ番 " + LOGIC.nextKiri(n) + " まであと " + LOGIC.kiriLeft(n) + " 件");
-  if(!COUNTER.initialized) parts.push("未設定（DBの応募済 " + n + " 件を表示中。「数値を合わせる」で確定）");
+  const text = LOGIC.formatCounter(n);
+  seg.innerHTML = segHtml(text);
+  seg.classList.remove("loading");
+  seg.setAttribute("aria-label", "累計応募数 " + n + " 件（7セグ表示 " + text + "）");
+  plain.textContent = text;
+  chip.textContent = text;
+  hero.classList.toggle("hit", LOGIC.isKiri(n));
+
+  if(LOGIC.isKiri(n)) sub.textContent = "🎉 キリ番 " + n + " 達成！ 次は " + LOGIC.nextKiri(n) + " 件";
+  else sub.textContent = "次のキリ番 " + LOGIC.nextKiri(n) + " まであと " + LOGIC.kiriLeft(n) + " 件";
+
+  const bits = [];
+  if(!COUNTER.initialized) bits.push("未設定（DBの応募済 " + n + " 件を表示中）");
   const when = fmtTime(COUNTER.updated_at);
-  if(when) parts.push("更新 " + when + (COUNTER.updated_by ? "（" + COUNTER.updated_by + "）" : ""));
-  sub.textContent = parts.join(" ／ ");
-  if(COUNTER_ERROR) sub.textContent += " ／ 読み込み失敗：" + COUNTER_ERROR;
-}
-
-function counterMoved(out, prefix){
-  const msg = (prefix || "") + "合計 " + out.count + " 件です";
-  return LOGIC.isKiri(out.count) ? msg + "　🎉 キリ番 " + out.count + " 達成！" : msg;
-}
-
-async function counterOp(body, okText){
-  if(COUNTER_BUSY) return;
-  COUNTER_BUSY = true;
-  renderCounter();
-  try{
-    const out = await reqAt(COUNTER_API, "POST", "", body, WRITE_TIMEOUT_MS);
-    COUNTER = out;
-    COUNTER_ERROR = "";
-    COUNTER_BUSY = false;
-    renderCounter();
-    toast(counterMoved(out, okText));
-  }catch(e){
-    COUNTER_BUSY = false;
-    renderCounter();
-    const why = e.code === "bad_passcode" ? "合言葉が違います（config.js）"
-      : e.code === "bad_counter" ? "数字が正しくありません"
-      : e.code === "counter_negative" ? "合計が0未満になります"
-      : whyText(e);
-    toast("カウンターを更新できませんでした：" + why, true);
-  }
-}
-
-function addOnce(){
-  if(COUNTER_BUSY || !COUNTER) return;
-  counterOp({ delta: 1, by: "サイト" }, "＋1 しました。");
-}
-
-function addBulk(){
-  if(COUNTER_BUSY || !COUNTER) return;
-  const el = document.getElementById("kiriN");
-  const raw = String(el.value || "").trim();
-  if(!/^\d+$/.test(raw) || Number(raw) < 1){
-    toast("まとめて加算する数は1以上の整数で入れてください", true);
-    el.focus();
-    return;
-  }
-  const n = Number(raw);
-  el.value = "";
-  counterOp({ delta: n, by: "サイト" }, n + "件まとめて＋しました。");
-}
-
-function setCounter(){
-  if(COUNTER_BUSY || !COUNTER) return;
-  const now = String(COUNTER.count);
-  const raw = window.prompt("カウンターの合計をいくつに合わせますか？\n（今は " + now + " 件）", now);
-  if(raw === null) return;
-  const v = String(raw).trim();
-  if(!/^\d+$/.test(v)){ toast("0以上の整数を入れてください", true); return; }
-  if(v === now){ toast("合計は「" + now + " 件」のままです"); return; }
-  const ok = window.confirm("合計を " + now + " 件 → " + Number(v) + " 件に合わせます。");
-  if(!ok) return;
-  counterOp({ set: Number(v), by: "サイト" }, "数値を合わせました。");
+  if(when) bits.push("最終更新 " + when + (COUNTER.updated_by ? "（" + COUNTER.updated_by + "）" : ""));
+  if(COUNTER_ERROR) bits.push("読み込み失敗：" + COUNTER_ERROR);
+  note.textContent = bits.join(" ／ ");
 }
 
 function setMeta(text){
@@ -629,14 +624,6 @@ document.getElementById("toast").addEventListener("click", e => {
 });
 document.getElementById("refresh").addEventListener("click", () => load(false));
 document.getElementById("q").addEventListener("input", render);
-document.getElementById("kiri").addEventListener("click", e => {
-  if(e.target.closest("#kiriAdd1")) { addOnce(); return; }
-  if(e.target.closest("#kiriAddN")) { addBulk(); return; }
-  if(e.target.closest("#kiriSetBtn")) { setCounter(); return; }
-});
-document.getElementById("kiriN").addEventListener("keydown", e => {
-  if(e.key === "Enter"){ e.preventDefault(); addBulk(); }
-});
 
 render();
 load(true);

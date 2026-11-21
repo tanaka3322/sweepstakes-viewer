@@ -107,6 +107,38 @@
     });
   }
 
+  // 7セグ表示用のゼロ埋め。59 → "000059"（width 既定6桁）。
+  // 桁を超える数（例: 1234567）はそのまま返し、画面側で桁を増やして描く。
+  function formatCounter(n, width) {
+    var w = width || 6;
+    var v = Number(n);
+    if (!Number.isFinite(v)) v = 0;
+    v = Math.max(0, Math.floor(v));
+    var s = String(v);
+    while (s.length < w) s = "0" + s;
+    return s;
+  }
+
+  // 7セグの点灯セグメント（a=上, b=右上, c=右下, d=下, e=左下, f=左上, g=中）
+  var SEVEN_SEG = {
+    "0": "abcdef",
+    "1": "bc",
+    "2": "abged",
+    "3": "abgcd",
+    "4": "fgbc",
+    "5": "afgcd",
+    "6": "afgedc",
+    "7": "abc",
+    "8": "abcdefg",
+    "9": "abcdfg",
+    "-": "g",
+  };
+  // 1文字ぶんの点灯セグメントを配列で返す（知らない文字は消灯のまま＝[]）
+  function sevenSeg(ch) {
+    var v = SEVEN_SEG[String(ch)];
+    return v ? v.split("") : [];
+  }
+
   var api = {
     TAB_NAMES: TAB_NAMES,
     HIDDEN_OWNERS: HIDDEN_OWNERS,
@@ -126,6 +158,9 @@
     nextKiri: nextKiri,
     kiriLeft: kiriLeft,
     filterByOwner: filterByOwner,
+    formatCounter: formatCounter,
+    SEVEN_SEG: SEVEN_SEG,
+    sevenSeg: sevenSeg,
     decorate: decorate,
     sortForList: sortForList,
   };

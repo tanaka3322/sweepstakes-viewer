@@ -604,27 +604,84 @@ async function main() {
     assert.strictEqual(logic.nextKiri(0), 100);
   });
 
-  await test("画面: キリ番カウンターの表示・+1・まとめて加算・数値を合わせるボタンがある", () => {
-    assert.ok(html.includes('id="kiri"'), "カウンター欄が無い");
-    assert.ok(html.includes("応募キリ番カウンター"), "見出しが無い");
-    assert.ok(html.includes('id="kiriCount"'), "合計数の表示が無い");
-    assert.ok(html.includes('id="kiriSub"'), "キリ番までの残り表示が無い");
-    assert.ok(html.includes('id="kiriAdd1"'), "+1 ボタンが無い");
-    assert.ok(html.includes('id="kiriN"'), "まとめて入力欄が無い");
-    assert.ok(html.includes('id="kiriAddN"'), "まとめて加算ボタンが無い");
-    assert.ok(html.includes('id="kiriSetBtn"'), "数値を合わせるボタンが無い");
-    assert.ok(html.includes('id="kiriChipCount"'), "ヘッダーの常時表示が無い");
+  await test("7セグ: 6桁ゼロ埋め（59→000059・桁を超えたらそのまま）", () => {
+    assert.strictEqual(logic.formatCounter(59), "000059");
+    assert.strictEqual(logic.formatCounter(60), "000060");
+    assert.strictEqual(logic.formatCounter(0), "000000");
+    assert.strictEqual(logic.formatCounter(7), "000007");
+    assert.strictEqual(logic.formatCounter(999), "000999");
+    assert.strictEqual(logic.formatCounter(1000), "001000");
+    assert.strictEqual(logic.formatCounter(123456), "123456");
+    assert.strictEqual(logic.formatCounter(1234567), "1234567");
+    assert.strictEqual(logic.formatCounter(-5), "000000");
+    assert.strictEqual(logic.formatCounter("8"), "000008");
+    assert.strictEqual(logic.formatCounter(undefined), "000000");
+    assert.strictEqual(logic.formatCounter(59, 8), "00000059");
   });
 
-  await test("画面: カウンターは /api/counter から読み、フィルター切替でも描き直す", () => {
+  await test("7セグ: 各数字の点灯セグメント（0〜9・知らない文字は消灯）", () => {
+    assert.deepStrictEqual(logic.sevenSeg("8"), ["a", "b", "c", "d", "e", "f", "g"]);
+    assert.deepStrictEqual(logic.sevenSeg("1"), ["b", "c"]);
+    assert.deepStrictEqual(logic.sevenSeg("0"), ["a", "b", "c", "d", "e", "f"]);
+    assert.deepStrictEqual(logic.sevenSeg("7"), ["a", "b", "c"]);
+    assert.deepStrictEqual(logic.sevenSeg(" "), []);
+    assert.deepStrictEqual(logic.sevenSeg("x"), []);
+    for (const d of ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]) {
+      const segs = logic.sevenSeg(d);
+      assert.ok(segs.length >= 2, d + " のセグメントが少なすぎる");
+      assert.ok(segs.every((s) => "abcdefg".includes(s)), d + " に見知らぬセグメントがある");
+      assert.strictEqual(new Set(segs).size, segs.length, d + " にセグメントの重複がある");
+    }
+  });
+
+  await test("画面: キリ番カウンターはページの1番上（<header>より前）にある", () => {
+    const bodyAt = html.indexOf("<body>");
+    const heroAt = html.indexOf('class="kiri-hero"');
+    const headerAt = html.indexOf("<header>");
+    assert.ok(bodyAt >= 0, "<body> が無い");
+    assert.ok(heroAt > bodyAt, "7セグのカウンター欄が body に無い");
+    assert.ok(headerAt > heroAt, "カウンターがヘッダー（タイトル）より上に無い");
+    const between = html.slice(bodyAt, heroAt);
+    assert.ok(!between.includes("<header") && !between.includes("<h1"), "上に他の見出しが挟まっている");
+  });
+
+  await test("画面: 7セグ風デジタル表示の要素・色・SVG描画がある", () => {
+    assert.ok(html.includes('id="kiriSeg"'), "7セグ表示の器が無い");
+    assert.ok(html.includes('id="kiriPlain"'), "数字の併記が無い");
+    assert.ok(html.includes('id="kiriSub"'), "キリ番までの残り表示が無い");
+    assert.ok(html.includes('id="kiriNote"'), "更新者・時刻の補足が無い");
+    assert.ok(html.includes("応募キリ番カウンター"), "見出しが無い");
+    assert.ok(html.includes('id="kiriChipCount"'), "ヘッダーの常時表示が無い");
+    assert.ok(html.includes(".kiri-seg .off{"), "消灯セグメントのスタイルが無い");
+    assert.ok(html.includes(".kiri-seg .on{"), "点灯セグメントのスタイルが無い");
+    assert.ok(html.includes("#0c2814"), "消灯セグメントの色（うっすら暗い緑）が無い");
+    assert.ok(html.includes("#19ff4b"), "点灯セグメントの蛍光緑が無い");
+    assert.ok(html.includes('viewBox="0 0 100 180"'), "7セグのSVGを描いていない");
+    assert.ok(html.includes("function digitSvg("), "桁のSVG生成が無い");
+    assert.ok(html.includes("LOGIC.formatCounter("), "ゼロ埋め関数を使っていない");
+  });
+
+  await test("画面: 手動入力（＋1・＋まとめて・数値を合わせる）は無い＝表示専用", () => {
+    for (const gone of ['id="kiriAdd1"', 'id="kiriAddN"', 'id="kiriSetBtn"', 'id="kiriN"',
+      "data-counter-add", "data-counter-bulk", "data-counter-set"]) {
+      assert.ok(!html.includes(gone), gone + " が残っている");
+    }
+    for (const gone of ["＋1", "＋まとめて", "数値を合わせる", "まとめて＋"]) {
+      assert.ok(!html.includes(gone), gone + " の文字が残っている");
+    }
+    assert.ok(!html.includes("{ delta: 1"), "画面から加算を送っている");
+    assert.ok(!html.includes("{ set: Number(v)"), "画面から数値合わせを送っている");
+    assert.ok(!html.includes("window.prompt"), "数値入力のプロンプトが残っている");
+    assert.ok(!html.includes('reqAt(COUNTER_API, "POST"'), "画面からカウンターへ書き込んでいる");
+  });
+
+  await test("画面: カウンターは /api/counter から読む（GETのみ）とフィルター切替でも描き直す", () => {
     const conf = fs.readFileSync(path.join(ROOT, "public", "config.js"), "utf8");
     assert.ok(conf.includes('counterApiBase: "/api/counter"'), "config.js に counterApiBase が無い");
     assert.ok(html.includes('const COUNTER_API = CONF.counterApiBase || "/api/counter";'), "画面が COUNTER_API を使っていない");
+    assert.ok(html.includes('reqAt(COUNTER_API, "GET"'), "GET で読んでいない");
     assert.ok(html.includes("loadCounter(true);"), "読み込み時にカウンターを取りに行っていない");
     assert.ok(html.includes("render();\n  renderCounter();"), "タブ切替でカウンターを描き直していない");
-    assert.ok(html.includes('{ delta: 1, by: "サイト" }'), "+1 の送信内容が違う");
-    assert.ok(html.includes('{ delta: n, by: "サイト" }'), "まとめて加算の送信内容が違う");
-    assert.ok(html.includes('{ set: Number(v), by: "サイト" }'), "数値を合わせる送信内容が違う");
   });
 
   console.log("");
