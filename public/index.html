@@ -114,9 +114,10 @@
     <button type="button" data-filter="本人">本人<span class="cnt">-</span></button>
     <button type="button" data-filter="むぎ">むぎ<span class="cnt">-</span></button>
     <button type="button" data-filter="きなこ">きなこ<span class="cnt">-</span></button>
+    <button type="button" data-filter="パッド">パッド<span class="cnt">-</span></button>
   </div>
   <input class="search" id="q" type="search" placeholder="キャンペーン名・主催で検索" autocomplete="off">
-  <div class="legend">担当ボタンの色はその人の可否です（むぎ・きなこ欄）：<span class="dot" style="background:#1565c0"></span>1 できる<span class="dot" style="background:#fdd835"></span>2 たぶんできる<span class="dot" style="background:#c62828"></span>3 できない（色なし＝未入力）／<b>いまの担当は太い黒枠</b></div>
+  <div class="legend">担当ボタンの色はその人の可否です（むぎ・きなこ・パッド欄）：<span class="dot" style="background:#1565c0"></span>1 できる<span class="dot" style="background:#fdd835"></span>2 たぶんできる<span class="dot" style="background:#c62828"></span>3 できない（色なし＝未入力）／<b>いまの担当は太い黒枠</b></div>
   <div class="legend">「やらない」は確認のうえ「やらない」タブへ移ります。そこでもう一度担当を押せば戻せます。／「× できなかった」は応募しようとしてできなかった案件です（担当はそのまま、「×を解除」で戻せます）。</div>
 </header>
 <main>
@@ -164,7 +165,7 @@ let LAST_UPDATED = null;
 let LOAD_ERROR = "";
 const BUSY = new Set();       // 書き込み中のNo
 const TAB_NAMES = LOGIC.TAB_NAMES;
-const OWNER_CHOICES = ["本人", "むぎ", "きなこ"];
+const OWNER_CHOICES = ["本人", "むぎ", "きなこ", "パッド"];
 const CAP_LABEL = { "1":"できる", "2":"たぶんできる", "3":"できない" };
 const FILTER_TABS = ["assigned", "failed"];
 
@@ -179,6 +180,7 @@ function tabOf(it){ return LOGIC.tabOf(it, new Date()); }
 function capVal(it, who){
   if(who === "むぎ") return String(it.mugi ?? "").trim();
   if(who === "きなこ") return String(it.kinako ?? "").trim();
+  if(who === "パッド") return String(it.pad ?? "").trim();
   return "";
 }
 

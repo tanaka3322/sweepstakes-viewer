@@ -13,7 +13,7 @@
     skip: "やらない",
   };
   var HIDDEN_OWNERS = ["やらない", "応募しない"];
-  var OWNER_FILTERS = ["全員", "本人", "むぎ", "きなこ"];
+  var OWNER_FILTERS = ["全員", "本人", "むぎ", "きなこ", "パッド"];
 
   function parseDeadline(s) {
     if (!s) return null;

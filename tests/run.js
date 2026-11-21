@@ -9,7 +9,8 @@
 //   - 通常GETでも×は返る／?failed=1 で×だけ
 //   - bulk で failed をまとめて更新（1件失敗しても他は通る）
 //   - owner は変えない
-//   - 既存72件（failed未設定）が壊れない
+//   - パッド（owner:"パッド"・pad:"1"/"2"/"3"）の設定・検証・一括更新・人別フィルター
+//   - 既存72件（failed・pad未設定）が壊れない
 //   - 画面の優先順位（やらない ＞ × ＞ 毎日応募 ＞ 未振り分け／応募済み／振り分け済み）と人別フィルター
 const assert = require("assert");
 const fs = require("fs");
@@ -123,6 +124,8 @@ async function main() {
       assert.strictEqual(initial.status, 200);
       assert.strictEqual(initial.json.count, 72);
       assert.ok(initial.json.items.every((it) => it.failed === ""), "failed が '' でない項目がある");
+    // pad は後から追加した項目。既存データに無くても '' として返り、エラーにならない
+    assert.ok(initial.json.items.every((it) => it.pad === ""), "pad が '' でない項目がある");
       const no1 = initial.json.items.find((it) => it.no === "1");
       assert.strictEqual(no1.name, "ピルクル エイジングライフ-トリプル- 8本入り");
       assert.strictEqual(no1.owner, "むぎ");
@@ -242,6 +245,64 @@ async function main() {
       assert.strictEqual(list.json.count, 0);
     });
 
+    // --- パッド ---
+    const owner8 = (await client.get("/api/items/8")).json.item.owner;
+    await test("PATCH で owner='パッド'・pad='1' を設定でき、読み戻せる", async () => {
+      const out = await client.patch("8", { owner: "パッド", pad: "1", by: "test" });
+      assert.strictEqual(out.status, 200);
+      assert.strictEqual(out.json.item.owner, "パッド");
+      assert.strictEqual(out.json.item.pad, "1");
+      const got = await client.get("/api/items/8");
+      assert.strictEqual(got.json.item.owner, "パッド");
+      assert.strictEqual(got.json.item.pad, "1");
+      assert.strictEqual(got.json.item.name, initial.json.items.find((it) => it.no === "8").name);
+    });
+
+    await test("pad は 2・3・空欄も受け付ける", async () => {
+      const two = await client.patch("8", { pad: "2" });
+      assert.strictEqual(two.json.item.pad, "2");
+      const three = await client.patch("8", { pad: "3" });
+      assert.strictEqual(three.json.item.pad, "3");
+      const clear = await client.patch("8", { pad: "" });
+      assert.strictEqual(clear.json.item.pad, "");
+      await client.patch("8", { pad: "1" });
+    });
+
+    await test("pad の不正値は 400 bad_value（0・4・○・できる）", async () => {
+      for (const bad of ["0", "4", "○", "できる"]) {
+        const out = await client.patch("8", { pad: bad });
+        assert.strictEqual(out.status, 400, "pad " + JSON.stringify(bad) + " が通ってしまった");
+        assert.strictEqual(out.json.error, "bad_value");
+      }
+      const still = await client.get("/api/items/8");
+      assert.strictEqual(still.json.item.pad, "1");
+      assert.strictEqual(still.json.item.owner, "パッド");
+    });
+
+    await test("許可外の担当（ぱっど）は 400 bad_owner", async () => {
+      const out = await client.patch("8", { owner: "ぱっど" });
+      assert.strictEqual(out.status, 400);
+      assert.strictEqual(out.json.error, "bad_owner");
+      assert.ok(out.json.message.includes("パッド"), "エラー文言にパッドが無い");
+    });
+
+    await test("bulk で owner=パッド・pad をまとめて更新できる", async () => {
+      const out = await client.post("/api/items/bulk", {
+        updates: [
+          { no: "9", owner: "パッド", pad: "2" },
+          { no: "10", pad: "3" },
+          { no: "11", pad: "9" },
+        ],
+        by: "bulk-test",
+      });
+      assert.strictEqual(out.status, 200);
+      assert.strictEqual(out.json.updated, 2);
+      assert.deepStrictEqual(out.json.failed.map((f) => f.no + ":" + f.error), ["11:bad_value"]);
+      const nine = out.json.items.find((it) => it.no === "9");
+      assert.strictEqual(nine.owner, "パッド");
+      assert.strictEqual(nine.pad, "2");
+    });
+
     // --- 新規追加 ---
     await test("新規追加（POST）で failed を指定でき、未指定なら ''", async () => {
       const made = await client.post("/api/items", {
@@ -256,8 +317,17 @@ async function main() {
       });
       assert.strictEqual(plain.status, 201);
       assert.strictEqual(plain.json.item.failed, "");
+      assert.strictEqual(plain.json.item.pad, "");
+      const padded = await client.post("/api/items", {
+        item: { name: "テスト用キャンペーン(パッド)", sponsor: "テスト", deadline: "2026/12/31 23:59", owner: "パッド", pad: "3" },
+        by: "test",
+      });
+      assert.strictEqual(padded.status, 201);
+      assert.strictEqual(padded.json.item.owner, "パッド");
+      assert.strictEqual(padded.json.item.pad, "3");
       await client.del(made.json.item.no);
       await client.del(plain.json.item.no);
+      await client.del(padded.json.item.no);
     });
 
     await test("不正な failed での新規追加は 400 bad_value", async () => {
@@ -313,17 +383,37 @@ async function main() {
     assert.strictEqual(logic.tabOf(Object.assign({}, baseItem, { owner: "むぎ", status: "未応募" }), now), "assigned");
   });
 
-  await test("人別フィルター: 全員／本人／むぎ／きなこ", () => {
+  await test("人別フィルター: 全員／本人／むぎ／きなこ／パッド", () => {
     const list = [
       Object.assign({}, baseItem, { no: "1", owner: "本人" }),
       Object.assign({}, baseItem, { no: "2", owner: "むぎ" }),
       Object.assign({}, baseItem, { no: "3", owner: "きなこ" }),
       Object.assign({}, baseItem, { no: "4", owner: "未振り分け" }),
+      Object.assign({}, baseItem, { no: "5", owner: "パッド", pad: "1" }),
     ];
-    assert.strictEqual(logic.filterByOwner(list, "全員").length, 4);
+    assert.deepStrictEqual(logic.OWNER_FILTERS, ["全員", "本人", "むぎ", "きなこ", "パッド"]);
+    assert.strictEqual(logic.filterByOwner(list, "全員").length, 5);
     assert.deepStrictEqual(logic.filterByOwner(list, "むぎ").map((it) => it.no), ["2"]);
     assert.deepStrictEqual(logic.filterByOwner(list, "本人").map((it) => it.no), ["1"]);
     assert.deepStrictEqual(logic.filterByOwner(list, "きなこ").map((it) => it.no), ["3"]);
+    assert.deepStrictEqual(logic.filterByOwner(list, "パッド").map((it) => it.no), ["5"]);
+  });
+
+  await test("担当パッドの案件は「振り分け済み」に入り、人別フィルターの件数になる", () => {
+    const list = [
+      Object.assign({}, baseItem, { no: "1", owner: "パッド", pad: "1" }),
+      Object.assign({}, baseItem, { no: "2", owner: "パッド", pad: "2" }),
+      Object.assign({}, baseItem, { no: "3", owner: "むぎ" }),
+      Object.assign({}, baseItem, { no: "4", owner: "パッド", failed: "×" }),
+      Object.assign({}, baseItem, { no: "5", owner: "パッド", status: "応募済（2026/11/20 パッド代行）" }),
+    ];
+    assert.strictEqual(logic.tabOf(list[0], now), "assigned");
+    assert.strictEqual(logic.tabOf(list[3], now), "failed");
+    assert.strictEqual(logic.tabOf(list[4], now), "done");
+    const assigned = list.filter((it) => logic.tabOf(it, now) === "assigned");
+    assert.strictEqual(logic.filterByOwner(assigned, "パッド").length, 2);
+    const failed = list.filter((it) => logic.tabOf(it, now) === "failed");
+    assert.strictEqual(logic.filterByOwner(failed, "パッド").length, 1);
   });
 
   await test("並び順: 締切が近い順・期限切れは末尾", () => {
@@ -341,12 +431,19 @@ async function main() {
   await test("画面: ×タブ・人別フィルター・×ボタン・ロジック読み込みがある", () => {
     assert.ok(html.includes('data-tab="failed"'), "×タブが無い");
     assert.ok(html.includes('id="filter"'), "人別フィルターが無い");
-    for (const who of ["全員", "本人", "むぎ", "きなこ"]) {
+    for (const who of ["全員", "本人", "むぎ", "きなこ", "パッド"]) {
       assert.ok(html.includes('data-filter="' + who + '"'), "フィルター " + who + " が無い");
     }
+    assert.ok(html.includes('data-filter="パッド">パッド<span class="cnt">-</span></button>'), "パッドのフィルターボタンが仕様どおりでない");
     assert.ok(html.includes("× できなかった"), "×ボタンが無い");
     assert.ok(html.includes("×を解除"), "×を解除ボタンが無い");
     assert.ok(html.includes('src="logic.js"'), "logic.js を読んでいない");
+  });
+
+  await test("画面: 担当ボタンにパッドがあり、pad の可否を読んでラベルを付ける", () => {
+    assert.ok(html.includes('const OWNER_CHOICES = ["本人", "むぎ", "きなこ", "パッド"];'), "OWNER_CHOICES にパッドが無い");
+    assert.ok(html.includes('if(who === "パッド") return String(it.pad ?? "").trim();'), "capVal が pad を見ていない");
+    assert.ok(html.includes("むぎ・きなこ・パッド欄"), "凡例がパッドを説明していない");
   });
 
   console.log("");
